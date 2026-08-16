@@ -1,175 +1,178 @@
-# repo-template-typescript
+# @knorby/incidecoder-client
 
-A TypeScript starter template for universal npm packages (Node, React Native,
-and more) with dual ESM/CJS output, Biome linting/formatting, Vitest testing,
-Changesets versioning, and security-focused publishing defaults.
+A universal TypeScript client for scraping data from
+[incidecoder.com](https://incidecoder.com/) — products, ingredients, search
+(simple + advanced), brands, and ingredient functions.
 
-<!-- TODO: Replace project name and description above with project-specific values. -->
+- **Universal runtime.** No Node.js-only APIs. HTTP runs through an injectable
+  `fetch` (native in Node 20+, React Native, and browsers). HTML parsing uses
+  [`cheerio/slim`](https://cheerio.js.org/docs/intro) (excludes `parse5` and
+  `undici`), so the library bundles cleanly under React Native / Metro where
+  full cheerio's `fromURL` import breaks bundling.
+- **Parse/transport split.** Every `parse*` function is a pure
+  `(html) => data` export, so you can pair it with any prefetch/cache layer. The
+  `createIncidecoderClient()` convenience wrapper fetches + parses for you.
+- **Options everywhere.** Every object-returning method takes granular flags so
+  lean output is the default and verbose sections (functions, skim table,
+  CosIng data, long-form descriptions, …) are opt-in.
+- **Next-link pagination.** The authoritative "Next page >>" URL is read from
+  the HTML rather than reconstructed, so the library is robust across
+  incidecoder.com's differing param schemes (`ppage`, `uoffset`, `offset`).
 
-## What's included
+> **Not affiliated with incidecoder.com.** This is an unofficial scraper. The
+> site's `robots.txt` permits crawling `/products`, `/ingredients`,
+> `/search`, `/brands`, and `/ingredient-functions` (it disallows only `/auth/`
+> and `/products/recommend/`). Be polite: keep request volume low, use the
+> client's `requestIntervalMs` for auto-pagination, don't republish the site's
+> prose, and prefer the lean option flags when you don't need verbose data.
 
-- **`tsup`** — zero-config build tool producing dual ESM + CJS output with
-  TypeScript declaration files (`.d.ts`).
-- **`Biome`** — single-tool linter + formatter (replaces ESLint + Prettier;
-  10-100x faster).
-- **`Vitest`** — fast test runner with native ESM and TypeScript support.
-- **`Changesets`** — versioning and changelog management (decoupled from
-  merges).
-- **`Husky` + `lint-staged`** — pre-commit hooks for Biome (lint + format
-  staged files).
-- **`commitlint`** — enforces [conventional commits](https://www.conventionalcommits.org/).
-- **`pre-commit`** — file hygiene (whitespace, EOL, YAML/JSON validation),
-  secret scanning (gitleaks + TruffleHog), shellcheck, and
-  `no-commit-to-branch` protection.
-- **GitHub Actions** — CI runs lint, typecheck, build, test, and `npm audit`
-  on every push/PR. Release workflow included (disabled by default).
-- **Security defaults** — `.npmrc` blocks dependency `postinstall` scripts,
-  `package.json` ships with provenance attestation enabled, `files` field
-  whitelists only `dist/`.
-
-## Prerequisites
-
-- **Node.js 22+** (use [nvm](https://github.com/nvm-sh/nvm) or
-  [fnm](https://github.com/Schniz/fnm); this repo includes an `.nvmrc`).
-- **npm** (bundled with Node).
-- **pre-commit** — `pipx install pre-commit` or `brew install pre-commit`.
-- **gitleaks** — `brew install gitleaks` (secret scanner for pre-commit).
-- **Go toolchain** — `brew install go` (required once for the TruffleHog hook
-  build).
-
-## Getting started
+## Install
 
 ```bash
-# 1. Clone the repo (or use it as a template on GitHub)
-git clone <repo-url>
-cd <repo-name>
-
-# 2. Use the correct Node version
-nvm use              # or: fnm use
-
-# 3. Install dependencies
-npm install
-
-# 4. Set up Husky hooks (prepare script is blocked by .npmrc ignore-scripts)
-npx husky
-
-# 5. Install pre-commit hooks (file hygiene + secret scanning)
-pre-commit install
-
-# 6. Run all hooks against all files to verify
-pre-commit run --all-files
+npm install @knorby/incidecoder-client
 ```
 
-The first `pre-commit run` installs all hook environments and builds
-TruffleHog from source (a few minutes). Subsequent runs are cached and fast.
+### React Native
 
-## Development
+The library is Metro-safe out of the box (no `undici`/`parse5` in the bundle).
+`fetch` is injected, so in environments without a global `fetch` pass one:
 
-| Command | What it does |
-| --- | --- |
-| `npm run build` | Build the package (tsup + tsc — dual ESM/CJS output with `.d.ts`/`.d.cts` declarations) |
-| `npm run dev` | Build in watch mode |
-| `npm run lint` | Lint with Biome |
-| `npm run format` | Format with Biome (writes changes) |
-| `npm run check` | Lint + format in one pass (writes changes) |
-| `npm run typecheck` | Type-check with `tsc --noEmit` |
-| `npm test` | Run tests once (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with coverage reporting |
+```ts
+import { createIncidecoderClient } from "@knorby/incidecoder-client";
 
-### Project structure
-
+const client = createIncidecoderClient({
+  // fetch: myFetch,            // optional; defaults to globalThis.fetch
+  requestIntervalMs: 1000,      // politeness delay for auto-pagination
+  maxPages: 25,                 // safety cap per allPages operation
+});
 ```
-src/
-  index.ts              # package entry point (add exports here)
-tests/
-  index.test.ts         # test files (*.test.ts)
-dist/                   # build output (gitignored, generated by tsup)
-.changeset/             # changeset files (versioning)
-.github/workflows/      # CI + release workflows
-docs/decisions/          # architecture decision records (ADRs)
+
+## Quick start
+
+```ts
+const client = createIncidecoderClient();
+
+// Lean product (defaults): name, brand, description, ingredient set, original
+// image, hashtags.
+const product = await client.getProduct("the-ordinary-retinol-1-in-squalane");
+console.log(product.name, product.brand?.name, product.ingredients.length);
+
+// Verbose product: opt into each section independently.
+const full = await client.getProduct("the-ordinary-retinol-1-in-squalane", {
+  images: "all",
+  functions: true,
+  skimTable: true,
+  dates: true,
+  tooltips: true,
+  longDescriptions: true,
+});
+
+// Ingredient page.
+const squalane = await client.getIngredient("squalane", {
+  cosing: true,
+  details: true,
+  proof: true,
+});
+
+// Search (both products + ingredients tabs; each paginates independently).
+const results = await client.search("the ordinary");
+console.log(results.products.items.length, results.products.hasMore);
+
+// ...or fetch every page of both tabs:
+const all = await client.search("the ordinary", { allPages: true });
+
+// Advanced product search (ingredient include/exclude, site display names).
+const hits = await client.searchProducts({
+  query: "the ordinary",
+  include: ["Squalane"],
+  exclude: ["Simple Alcohols"],
+  includeMode: "all", // 'all' = ALL OF (default); 'any' = ANY OF
+});
 ```
+
+## API
+
+### `createIncidecoderClient(options)`
+
+| Option             | Default                          | Description                                            |
+| ------------------ | -------------------------------- | ------------------------------------------------------ |
+| `baseUrl`          | `https://incidecoder.com`        | Base URL.                                              |
+| `fetch`            | `globalThis.fetch`               | Custom `fetch` (cached/proxied/RN).                    |
+| `headers`          | `{ User-Agent: … }`             | Extra request headers.                                 |
+| `requestIntervalMs` | `1000`                          | Delay between requests during auto-pagination.        |
+| `maxPages`         | `25`                             | Safety cap on pages fetched per `allPages` operation. |
+
+### Methods
+
+Flag semantics: identity fields (`slug`/`name`/`path`/`url`) are always
+returned; every other section is included only when its flag is on — a flag
+turned off omits the key entirely (no empty placeholders).
+
+- `search(query, opts?)` → both products + ingredients tabs. Page 1 is one
+  combined request; `{ page: 2 }`+ fetches each tab separately (`activetab` +
+  `ppage`); `{ allPages }` follows each tab's next links from page 1.
+- `searchProducts(filters, opts?)` → advanced search (include/exclude);
+  `{ page }` (uses `ppage`) and `{ allPages }`.
+- `getProduct(id, opts?)` → `id` is a slug, path, or URL. Flags (defaults in
+  **bold**): `brand` **true**, `description` **true**, `ingredients` **true**,
+  `images` **`"original"`** (`"none"` | `"original"` | `"all"`), `hashtags`
+  **true**, `fullName` false, `functions` false, `skimTable` false, `dates`
+  false, `tooltips` false, `longDescriptions` false.
+- `getIngredient(id, opts?)` → `ourTake` is always present (`null` when the
+  page has no rating). Flags: `functions` **true**, `safety`
+  (irritancy + comedogenicity) **true**, `alsoCalled` **true**, `image`
+  **true**, `cosing` false, `details` false, `proof` false.
+- `getIngredientProducts(id, opts?)` → paginated "other products" list
+  (`uoffset`); `{ includeKnownAmount: true }` adds the known-amount carousel.
+- `getBrand(id, opts?)` → brand product list (`offset`); `{ page }` /
+  `{ allPages }`.
+- `getIngredientFunction(id, opts?)` → ingredient-function ingredient list
+  (`offset`); `{ page }` / `{ allPages }`.
+- `fetchHtml(target)` → raw HTML for any path/URL.
+
+Every list item is a `{ name, slug, path, url }` ref — the `slug` is the stable
+key for the entity on incidecoder.com.
+
+### Pure parsers (no fetch)
+
+For custom transport layers (RN prefetch, edge caches, raw HTML you already
+have), import the `parse*` functions directly:
+
+```ts
+import { parseProductPage, parseIngredientPage, parseSearchPage } from "@knorby/incidecoder-client";
+
+const product = parseProductPage(htmlString, "https://incidecoder.com");
+```
+
+Also exported: `parseIngredientProductsPage`, `parseSearchProductsPage`,
+`parseBrandPage`, `parseIngredientFunctionPage`, `parseHtml`, `findNextLink`,
+`makePaginated`, `paginateAll`, and the text/URL utilities.
 
 ## Testing
 
-Tests use [Vitest](https://vitest.dev/) and live in `tests/`. Add test files
-as `*.test.ts`. The CI workflow (`.github/workflows/tests.yml`) runs the full
-suite on every push to `main` and on PRs:
+| Command               | What it does                                                         |
+| --------------------- | -------------------------------------------------------------------- |
+| `npm test`            | Offline fixture-based unit + client tests (no network).             |
+| `npm run test:live`   | Hits the live site (`INCIDECODER_LIVE=1`) — a markup-change tripwire. |
+| `npm run test:coverage` | Coverage report.                                                  |
 
-- Biome lint
-- TypeScript type-check (`tsc --noEmit`)
-- Build (`tsup`)
-- Tests (`vitest run`)
-- Vulnerability scan (`npm audit --audit-level=moderate`)
+Fixtures live in `tests/fixtures/` and are (re)captured with
+`node scripts/capture-fixtures.mjs`. The CI workflow runs only the offline
+suite.
 
-## Versioning and publishing
+## Development
 
-This repo uses [Changesets](https://github.com/changesets/changesets) for
-versioning. Versioning is decoupled from merges — you can merge multiple PRs
-and release them all at once.
+| Command              | What it does                                                          |
+| -------------------- | --------------------------------------------------------------------- |
+| `npm run build`      | Build (tsup — dual ESM/CJS + `.d.ts`/`.d.cts`).                      |
+| `npm run lint`       | Lint with Biome.                                                      |
+| `npm run check`      | Lint + format in one pass (writes changes).                          |
+| `npm run typecheck`  | Type-check `src/` + `tests/` with `tsc` (no emit).                    |
+| `npx changeset`      | Create a changeset (required for any change that affects published output). |
 
-### Adding a changeset
+See [AGENTS.md](AGENTS.md) for AI-agent steering and [CONTRIBUTING.md](CONTRIBUTING.md)
+for the full development workflow.
 
-```bash
-npx changeset
-```
+## License
 
-Select patch/minor/major, write a summary. Commit the generated
-`.changeset/*.md` alongside your code.
-
-### Releasing
-
-```bash
-npm run build                # build the package
-npm pack --dry-run            # verify only dist/ + docs are included
-npx changeset version          # bump package.json + generate CHANGELOG.md
-npm run release                # build + publish to npm
-```
-
-### Automated releases (optional)
-
-The release workflow (`.github/workflows/release.yml`) is included but
-**disabled by default** (manual `workflow_dispatch` trigger only). To enable
-automated releases on every merge to main, change the trigger to
-`push: branches: [main]`. The changesets action will open a "Version
-Packages" PR; merging it publishes to npm and creates a GitHub Release.
-
-### Publishing security
-
-- **2FA**: enable on npm — `npm profile enable-2fa auth-and-writes`
-- **Granular tokens**: use npm Granular Access Tokens (scoped, publish-only,
-  time-limited). Classic tokens were revoked December 2025.
-- **Provenance**: this repo publishes with `--provenance` (cryptographic
-  attestation linking the package to its commit + workflow).
-- **Scoped names**: use `@yourscope/package` to prevent dependency confusion.
-- **`.npmrc`**: `ignore-scripts=true` blocks dependency `postinstall`
-  scripts. This also blocks the `prepare` script, so run `npx husky`
-  after `npm install` to set up hooks (or use
-  `npm install --ignore-scripts=false`).
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow.
-
-## Customizing
-
-- **Package name**: update `name` in `package.json`.
-- **Build targets**: adjust `tsup.config.ts` (format, target, entry points).
-- **TypeScript config**: modify `tsconfig.json` (target, module, strictness).
-- **Biome rules**: edit `biome.json` (formatter style, linter rules).
-- **Biome → ESLint + Prettier**: if you need a larger rule ecosystem, remove
-  `@biomejs/biome` from devDependencies, install ESLint + Prettier +
-  `eslint-config-prettier`, create `eslint.config.mjs` (flat config) and
-  `.prettierrc`, and update the `lint-staged` config in `package.json`.
-- **Branch protection**: `no-commit-to-branch` is a local guard only. Also
-  enable GitHub branch protection rules on `main` (Settings → Branches).
-- **CODEOWNERS**: update `.github/CODEOWNERS` with your GitHub username.
-
-## Documentation
-
-- [`AGENTS.md`](AGENTS.md) — instructions and steering for AI coding agents.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — development workflow, commit
-  conventions, publishing.
-- [`docs/`](docs/) — design notes, architecture, and decision records.
-- [`docs/decisions/ADR-0001-tooling-stack.md`](docs/decisions/ADR-0001-tooling-stack.md)
-  — rationale for the chosen toolchain.
-
-<!-- TODO: Add npm version / downloads / license badges once published. -->
+[Apache-2.0](LICENSE) — Copyright 2026 knorby.

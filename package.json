@@ -1,7 +1,26 @@
 {
-  "name": "repo-template-typescript",
+  "name": "@knorby/incidecoder-client",
   "version": "0.0.0",
-  "description": "A TypeScript starter template for universal npm packages (Node, React Native, and more).",
+  "description": "A universal TypeScript client for scraping data from incidecoder.com — products, ingredients, search, brands, and ingredient functions.",
+  "license": "Apache-2.0",
+  "author": "knorby",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knorby/incidecoder-client.git"
+  },
+  "homepage": "https://github.com/knorby/incidecoder-client#readme",
+  "bugs": {
+    "url": "https://github.com/knorby/incidecoder-client/issues"
+  },
+  "keywords": [
+    "incidecoder",
+    "skincare",
+    "ingredients",
+    "scraper",
+    "cosmetics",
+    "inci",
+    "react-native"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,11 +40,15 @@
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "sideEffects": false,
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0"
   },
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly && node -e \"require('fs').copyFileSync('dist/index.d.ts','dist/index.d.cts')\"",
@@ -37,6 +60,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:live": "INCIDECODER_LIVE=1 vitest run --config vitest.live.config.ts",
     "release": "npm run build && changeset publish",
     "prepare": "husky"
   },
@@ -62,6 +86,7 @@
     "vitest": "^4.1.10"
   },
   "publishConfig": {
+    "access": "public",
     "provenance": true
   }
 }
