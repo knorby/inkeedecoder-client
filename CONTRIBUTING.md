@@ -16,8 +16,8 @@ workflow, and how to publish releases.
 ## Getting started
 
 ```bash
-git clone <repo-url>
-cd <repo-name>
+git clone https://github.com/knorby/incidecoder-client.git
+cd incidecoder-client
 nvm use              # or: fnm use
 npm install          # installs deps (prepare blocked by .npmrc ignore-scripts)
 npx husky            # sets up Husky hooks (run after npm install)
@@ -34,8 +34,9 @@ pre-commit install   # sets up pre-commit hooks for file hygiene + secrets
 | `npm run format` | Format with Biome (writes changes) |
 | `npm run check` | Lint + format in one pass (writes changes) |
 | `npm run typecheck` | Type-check `src/` + `tests/` with `tsc` (no emit) |
-| `npm test` | Run tests once (Vitest) |
+| `npm test` | Run tests once (Vitest, offline fixtures) |
 | `npm run test:watch` | Run tests in watch mode |
+| `npm run test:live` | Hit the live site (markup-change tripwire; `INCIDECODER_LIVE=1`) |
 | `npm run test:coverage` | Run tests with coverage reporting |
 
 ## Git hooks
