@@ -42,6 +42,13 @@ describe.skipIf(!LIVE)("live incidecoder.com", () => {
     expect(r.products.items.length).toBeGreaterThan(0);
   });
 
+  it("runs a real single-tab search", async () => {
+    const r = await client.search("the ordinary", { tab: "products" });
+    expect(r.tab).toBe("products");
+    expect(r.results.items.length).toBeGreaterThan(0);
+    expect(r.results.items[0]?.path).toMatch(/^\/products\//);
+  });
+
   it("lists a real brand's products", async () => {
     const b = await client.getBrand("the-ordinary");
     expect(b.name).toBe("The Ordinary");
