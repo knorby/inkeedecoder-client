@@ -77,18 +77,18 @@ describe("our-take helpers", () => {
 
 describe("url/path helpers", () => {
   it("joinUrl handles paths, absolute, protocol-relative", () => {
-    expect(joinUrl("https://incidecoder.com", "/products/x")).toBe(
-      "https://incidecoder.com/products/x",
+    expect(joinUrl("https://inkeedecoder.com", "/products/x")).toBe(
+      "https://inkeedecoder.com/products/x",
     );
-    expect(joinUrl("https://incidecoder.com/", "https://other.com/y")).toBe(
+    expect(joinUrl("https://inkeedecoder.com/", "https://other.com/y")).toBe(
       "https://other.com/y",
     );
-    expect(joinUrl("https://incidecoder.com", "//cdn/x")).toBe("https://cdn/x");
+    expect(joinUrl("https://inkeedecoder.com", "//cdn/x")).toBe("https://cdn/x");
   });
 
   it("parsePath reduces hrefs to site paths", () => {
     expect(
-      parsePath("https://incidecoder.com/ingredients/squalane?x=1#y"),
+      parsePath("https://inkeedecoder.com/ingredients/squalane?x=1#y"),
     ).toBe("/ingredients/squalane");
     expect(parsePath("/brands/the-ordinary")).toBe("/brands/the-ordinary");
   });
@@ -111,7 +111,7 @@ describe("url/path helpers", () => {
     });
     expect(
       normalizeEntityId(
-        "https://incidecoder.com/brands/the-ordinary",
+        "https://inkeedecoder.com/brands/the-ordinary",
         "brands",
       ),
     ).toEqual({ slug: "the-ordinary", path: "/brands/the-ordinary" });

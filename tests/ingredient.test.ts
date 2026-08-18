@@ -89,7 +89,7 @@ describe("parseIngredientProductsPage — tocopherol", () => {
     const first = result.knownAmountProducts?.[0];
     expect(first?.slug).toBeTruthy();
     expect(first?.path).toMatch(/^\/products\//);
-    expect(first?.url).toMatch(/^https:\/\/incidecoder\.com\/products\//);
+    expect(first?.url).toMatch(/^https:\/\/inkeedecoder\.com\/products\//);
   });
 });
 

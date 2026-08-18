@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createIncidecoderClient } from "../src/client.js";
+import { createInkeedecoderClient } from "../src/client.js";
 import { BASE_URL, fixture } from "./helpers.js";
 
 /**
@@ -75,7 +75,7 @@ const ROUTES: ReadonlyArray<{ match: string; file?: string; html?: string }> = [
 /** A client plus the URLs its fake transport has requested so far. */
 function makeClient() {
   const urls: string[] = [];
-  const c = createIncidecoderClient({
+  const c = createInkeedecoderClient({
     baseUrl: BASE_URL,
     fetch: makeFetch(ROUTES, urls),
     requestIntervalMs: 0,
@@ -181,7 +181,7 @@ describe("getIngredient — default vs verbose", () => {
     expect("image" in ing).toBe(false);
     expect(ing.ourTake).toBe("goodie");
 
-    const blank = createIncidecoderClient({
+    const blank = createInkeedecoderClient({
       baseUrl: BASE_URL,
       fetch: makeFetch([{ match: "", html: EMPTY_HTML }]),
       requestIntervalMs: 0,
@@ -206,10 +206,10 @@ describe("search", () => {
     const { c, urls } = makeClient();
     const r = await c.search("squalane", { page: 2 });
     expect(urls[0]).toBe(
-      "https://incidecoder.com/search?query=squalane&activetab=products&ppage=2",
+      "https://inkeedecoder.com/search?query=squalane&activetab=products&ppage=2",
     );
     expect(urls[1]).toBe(
-      "https://incidecoder.com/search?query=squalane&activetab=ingredients&ppage=2",
+      "https://inkeedecoder.com/search?query=squalane&activetab=ingredients&ppage=2",
     );
     expect(urls.length).toBe(2);
     expect(r.products.page).toBe(2);
@@ -231,7 +231,7 @@ describe("search", () => {
       const { c, urls } = makeClient();
       const r = await c.search("the ordinary", { tab: "products" });
       expect(urls).toEqual([
-        "https://incidecoder.com/search?query=the+ordinary&activetab=products",
+        "https://inkeedecoder.com/search?query=the+ordinary&activetab=products",
       ]);
       expect(r.tab).toBe("products");
       expect(r.query).toBe("the ordinary");
@@ -245,7 +245,7 @@ describe("search", () => {
       const { c, urls } = makeClient();
       const r = await c.search("squalane", { page: 2, tab: "products" });
       expect(urls).toEqual([
-        "https://incidecoder.com/search?query=squalane&activetab=products&ppage=2",
+        "https://inkeedecoder.com/search?query=squalane&activetab=products&ppage=2",
       ]);
       expect(r.tab).toBe("products");
       expect(r.results.page).toBe(2);
@@ -273,7 +273,7 @@ describe("search", () => {
       const { c, urls } = makeClient();
       const r = await c.search("squalane", { page: 2, tab: "ingredients" });
       expect(urls).toEqual([
-        "https://incidecoder.com/search?query=squalane&activetab=ingredients&ppage=2",
+        "https://inkeedecoder.com/search?query=squalane&activetab=ingredients&ppage=2",
       ]);
       expect(r.tab).toBe("ingredients");
       expect(r.results.items.length).toBe(1);
@@ -311,7 +311,7 @@ describe("page param construction", () => {
     const { c, urls } = makeClient();
     await c.searchProducts({ query: "the ordinary" }, { page: 3 });
     expect(urls[0]).toBe(
-      "https://incidecoder.com/search/product?query=the+ordinary&ppage=3",
+      "https://inkeedecoder.com/search/product?query=the+ordinary&ppage=3",
     );
   });
 
@@ -319,7 +319,7 @@ describe("page param construction", () => {
     const { c, urls } = makeClient();
     await c.getIngredientProducts("tocopherol", { page: 3 });
     expect(urls[0]).toBe(
-      "https://incidecoder.com/ingredients/tocopherol?uoffset=2",
+      "https://inkeedecoder.com/ingredients/tocopherol?uoffset=2",
     );
   });
 
@@ -327,7 +327,7 @@ describe("page param construction", () => {
     const { c, urls } = makeClient();
     await c.getBrand("the-ordinary", { page: 3 });
     expect(urls[0]).toBe(
-      "https://incidecoder.com/brands/the-ordinary?offset=2",
+      "https://inkeedecoder.com/brands/the-ordinary?offset=2",
     );
   });
 
@@ -335,7 +335,7 @@ describe("page param construction", () => {
     const { c, urls } = makeClient();
     await c.getIngredientFunction("emollient", { page: 3 });
     expect(urls[0]).toBe(
-      "https://incidecoder.com/ingredient-functions/emollient?offset=2",
+      "https://inkeedecoder.com/ingredient-functions/emollient?offset=2",
     );
   });
 });
@@ -349,7 +349,7 @@ describe("maxPages cap", () => {
       <a href="/search/product?query=loop&ppage=99">Next page &gt;&gt;</a>
     </body></html>`;
     const urls: string[] = [];
-    const c = createIncidecoderClient({
+    const c = createInkeedecoderClient({
       baseUrl: BASE_URL,
       fetch: makeFetch([{ match: "", html: LOOP_HTML }], urls),
       requestIntervalMs: 0,
@@ -418,7 +418,7 @@ describe("entity id formats", () => {
       "/products/the-ordinary-retinol-1-in-squalane",
     );
     const byUrl = await client().getProduct(
-      "https://incidecoder.com/products/the-ordinary-retinol-1-in-squalane",
+      "https://inkeedecoder.com/products/the-ordinary-retinol-1-in-squalane",
     );
     expect(bySlug.slug).toBe("the-ordinary-retinol-1-in-squalane");
     expect(byPath.name).toBe(bySlug.name);
@@ -427,7 +427,7 @@ describe("entity id formats", () => {
 
   it("getIngredient accepts path and absolute URL ids", async () => {
     const byUrl = await client().getIngredient(
-      "https://incidecoder.com/ingredients/squalane",
+      "https://inkeedecoder.com/ingredients/squalane",
     );
     expect(byUrl.slug).toBe("squalane");
     expect(byUrl.path).toBe("/ingredients/squalane");
@@ -435,11 +435,11 @@ describe("entity id formats", () => {
   });
 });
 
-describe("createIncidecoderClient guard", () => {
+describe("createInkeedecoderClient guard", () => {
   it("throws when no fetch is available anywhere", () => {
     vi.stubGlobal("fetch", undefined);
     try {
-      expect(() => createIncidecoderClient({})).toThrow(/fetch/);
+      expect(() => createInkeedecoderClient({})).toThrow(/fetch/);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -453,7 +453,7 @@ describe("fetchHtml", () => {
   });
 
   it("throws on non-ok responses", async () => {
-    const c = createIncidecoderClient({
+    const c = createInkeedecoderClient({
       baseUrl: BASE_URL,
       fetch: (async () =>
         ({

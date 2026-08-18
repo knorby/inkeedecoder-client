@@ -13,7 +13,7 @@ describe("parseProductPage — the ordinary retinol 1% in squalane", () => {
     expect(product.name).toBe("Retinol 1% In Squalane");
     expect(product.path).toBe("/products/the-ordinary-retinol-1-in-squalane");
     expect(product.url).toBe(
-      "https://incidecoder.com/products/the-ordinary-retinol-1-in-squalane",
+      "https://inkeedecoder.com/products/the-ordinary-retinol-1-in-squalane",
     );
   });
 

@@ -1,16 +1,16 @@
 /**
- * Public type definitions for @knorby/incidecoder-client.
+ * Public type definitions for @knorby/inkeedecoder-client.
  *
  * Every list item carries a `slug` (treated as the stable key for the entity on
- * incidecoder.com), the site-relative `path`, and the absolute `url`. Callers
+ * inkeedecoder.com), the site-relative `path`, and the absolute `url`. Callers
  * that only need identifiers can ignore the verbose fields.
  */
 
-/** INCIDecoder's editorial rating of a product/ingredient. */
+/** INKEEDecoder's editorial rating of a product/ingredient. */
 export type OurTake = "superstar" | "goodie" | "icky";
 
 /**
- * A generic cross-reference to another incidecoder.com entity (product,
+ * A generic cross-reference to another inkeedecoder.com entity (product,
  * ingredient, brand, or ingredient-function). `slug` is the stable key.
  */
 export interface Ref {
@@ -70,7 +70,7 @@ export interface IngredientLongEntry {
 
 /** A reference to a product, with optional display metadata. */
 export interface IngredientRef extends Ref {
-  /** INCIDecoder editorial rating, when present. */
+  /** INKEEDecoder editorial rating, when present. */
   ourTake?: OurTake;
   /** Declared active percentage (e.g. "1.0%"), when present on the link text. */
   percent?: string;
@@ -113,7 +113,7 @@ export interface Product {
 }
 
 /**
- * Options for {@link IncidecoderClient.getProduct}. Every field is an
+ * Options for {@link InkeedecoderClient.getProduct}. Every field is an
  * independent boolean/mode; flags default to a lean output. Identity fields
  * (`slug`, `name`, `path`, `url`) are always present; every other section is
  * included only when its flag is on.
@@ -170,7 +170,7 @@ export interface Ingredient {
 }
 
 /**
- * Options for {@link IncidecoderClient.getIngredient}. Granular flags;
+ * Options for {@link InkeedecoderClient.getIngredient}. Granular flags;
  * identity fields plus `functions`/`safety`/`alsoCalled`/`image` default on.
  */
 export interface IngredientQuery {
@@ -226,7 +226,7 @@ export interface ListQuery {
 export type SearchTab = "products" | "ingredients";
 
 /**
- * Options for {@link IncidecoderClient.search}: {@link ListQuery} plus a
+ * Options for {@link InkeedecoderClient.search}: {@link ListQuery} plus a
  * single-tab selector.
  */
 export interface SearchQuery extends ListQuery {
@@ -296,7 +296,7 @@ export interface ProductSearchFilters {
 
 /** Constructor options for the client. */
 export interface ClientOptions {
-  /** Base URL. Default `https://incidecoder.com`. */
+  /** Base URL. Default `https://inkeedecoder.com`. */
   baseUrl?: string;
   /** Custom `fetch` (e.g. a cached/proxied implementation). Defaults to `globalThis.fetch`. */
   fetch?: typeof fetch;
@@ -308,9 +308,9 @@ export interface ClientOptions {
   maxPages?: number;
 }
 
-/** The client returned by {@link createIncidecoderClient}. */
-export interface IncidecoderClient {
-  /** Fetch raw HTML for any incidecoder.com path/URL. */
+/** The client returned by {@link createInkeedecoderClient}. */
+export interface InkeedecoderClient {
+  /** Fetch raw HTML for any inkeedecoder.com path/URL. */
   fetchHtml(target: string): Promise<string>;
   /**
    * Simple search; returns both products and ingredients tabs. Page 1 is a

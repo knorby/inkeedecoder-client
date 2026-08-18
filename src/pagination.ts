@@ -13,7 +13,7 @@ export interface RawList<T> {
 }
 
 /**
- * Find the authoritative "Next page >>" link inside a scope. INCIDecoder uses
+ * Find the authoritative "Next page >>" link inside a scope. INKEEDecoder uses
  * different pagination params per page type (`ppage`, `uoffset`, `offset`); by
  * extracting the link from the HTML we never have to construct or guess them.
  */

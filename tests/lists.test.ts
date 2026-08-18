@@ -32,7 +32,7 @@ describe("parseSearchPage — 'the ordinary' (products only)", () => {
     expect(buffet?.name).toBe("The Ordinary Buffet");
     expect(buffet?.path).toBe("/products/the-ordinary-buffet");
     expect(buffet?.url).toBe(
-      "https://incidecoder.com/products/the-ordinary-buffet",
+      "https://inkeedecoder.com/products/the-ordinary-buffet",
     );
   });
 });
@@ -70,7 +70,7 @@ describe("parseSearchProductsPage — advanced include filter", () => {
   it("returns filtered product hits as refs", () => {
     expect(r.items.length).toBeGreaterThan(0);
     expect(r.items[0]?.path).toMatch(/^\/products\//);
-    expect(r.items[0]?.url).toMatch(/^https:\/\/incidecoder\.com\/products\//);
+    expect(r.items[0]?.url).toMatch(/^https:\/\/inkeedecoder\.com\/products\//);
   });
 });
 

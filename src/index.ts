@@ -1,19 +1,19 @@
 /**
- * @knorby/incidecoder-client
+ * @knorby/inkeedecoder-client
  *
- * A universal TypeScript client for scraping data from incidecoder.com —
+ * A universal TypeScript client for scraping data from inkeedecoder.com —
  * products, ingredients, search (simple + advanced), brands, and ingredient
  * functions. No Node.js-only APIs: HTTP runs through an injectable `fetch`
  * (native in Node 20+, React Native, and browsers) and HTML parsing uses
  * `cheerio/slim` (React-Native/Metro-safe).
  *
- * Not affiliated with incidecoder.com. Be polite: keep request volume low,
+ * Not affiliated with inkeedecoder.com. Be polite: keep request volume low,
  * use the client's `requestIntervalMs` for auto-pagination, and don't
  * republish the site's prose. See README for etiquette + robots notes.
  */
-import { createIncidecoderClient } from "./client.js";
+import { createInkeedecoderClient } from "./client.js";
 
-export { createIncidecoderClient } from "./client.js";
+export { createInkeedecoderClient } from "./client.js";
 export { parseHtml } from "./html.js";
 export { findNextLink, makePaginated, paginateAll } from "./pagination.js";
 export {
@@ -33,7 +33,7 @@ export type {
   ClientOptions,
   FunctionRef,
   Hashtag,
-  IncidecoderClient,
+  InkeedecoderClient,
   Ingredient,
   IngredientFunction,
   IngredientLongEntry,
@@ -72,4 +72,4 @@ export {
   stripQuotes,
 } from "./util/text.js";
 
-export { createIncidecoderClient as default };
+export { createInkeedecoderClient as default };

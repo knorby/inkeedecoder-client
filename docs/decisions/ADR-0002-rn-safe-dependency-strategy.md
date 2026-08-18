@@ -20,7 +20,7 @@ two runtime-sensitive choices are the HTML parser and the HTTP layer:
   and only inside a single wrapper module, `src/html.ts`. Slim excludes `parse5`
   and `undici`. Type-only imports (`BasicAcceptedElems` from cheerio,
   `AnyNode` from `domhandler`) are erased at compile time.
-- Make `fetch` injectable via `createIncidecoderClient({ fetch })`, defaulting
+- Make `fetch` injectable via `createInkeedecoderClient({ fetch })`, defaulting
   to `globalThis.fetch`. All HTTP goes through this single injected function.
 - Use no Node.js-only APIs (`fs`, `Buffer`, `stream`, Node's `url`). URL
   building/parsing uses tiny string helpers in `src/util/refs.ts`.
@@ -37,7 +37,7 @@ two runtime-sensitive choices are the HTML parser and the HTTP layer:
 ## Consequences
 
 - The parser engine is htmlparser2 (lenient, fast) rather than the
-  spec-compliant parse5. INCIDecoder's server-rendered HTML parses cleanly under
+  spec-compliant parse5. INKEEDecoder's server-rendered HTML parses cleanly under
   htmlparser2; if any page ever needs stricter parsing, the swap is localized to
   `src/html.ts`.
 - Confirmed in the build output: the emitted bundle contains no `undici`,

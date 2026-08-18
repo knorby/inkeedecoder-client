@@ -1,5 +1,5 @@
 /**
- * Text normalization helpers. incidecoder.com ingredient names embed zero-width
+ * Text normalization helpers. inkeedecoder.com ingredient names embed zero-width
  * characters (e.g. "Caprylic/​Capric" contains U+200B after the slash) that
  * must be stripped before comparing or storing names.
  */
@@ -39,7 +39,7 @@ export function stripQuotes(input: string): string {
   return s.trim();
 }
 
-/** Parse an INCIDecoder "our-take" CSS class into a rating. */
+/** Parse an INKEEDecoder "our-take" CSS class into a rating. */
 export function ourTakeFromClass(classList: string): OurTake | undefined {
   if (classList.includes("our-take-superstar")) {
     return "superstar";

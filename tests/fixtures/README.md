@@ -1,34 +1,34 @@
 # Test fixtures
 
-Captured HTML from [incidecoder.com](https://incidecoder.com/) used by the
+Captured HTML from [inkeedecoder.com](https://inkeedecoder.com/) used by the
 offline test suite (`npm test`). These files let the parser tests run offline
 and deterministically, and double as a tripwire when the site's markup changes.
 
 ## Attribution & copyright
 
-The HTML in this directory is reproduced from incidecoder.com. All rights in the
+The HTML in this directory is reproduced from inkeedecoder.com. All rights in the
 source content — including product descriptions, ingredient writeups, brand
-names, and page markup — belong to INCIDecoder (`hello@incidecoder.com`). The
+names, and page markup — belong to INKEEDecoder (`hello@inkeedecoder.com`). The
 content is reproduced here **solely for non-distributed, development-time test
 fixtures** and is **not** shipped in the published package (the `files` field
 in `package.json` whitelists only `dist/`, `README.md`, `CHANGELOG.md`, and
 `LICENSE`).
 
-If you are INCIDecoder's operator and would prefer these fixtures removed,
-open an issue at <https://github.com/knorby/incidecoder-client/issues> and they
+If you are INKEEDecoder's operator and would prefer these fixtures removed,
+open an issue at <https://github.com/knorby/inkeedecoder-client/issues> and they
 will be taken down.
 
 ## How they were captured
 
 Via `node scripts/capture-fixtures.mjs`, which `GET`s each URL below with a
 `User-Agent` of
-`@knorby/incidecoder-client/0 (capture-fixtures; +https://github.com/knorby/incidecoder-client)`
+`@knorby/inkeedecoder-client/0 (capture-fixtures; +https://github.com/knorby/inkeedecoder-client)`
 and a 750 ms pause between requests (polite scraping). Re-run that script to
 refresh the fixtures, then update expected assertions in the `*.test.ts` files
 if the site's markup has changed.
 
 - **Captured:** 2026-08-16
-- **Base URL:** `https://incidecoder.com`
+- **Base URL:** `https://inkeedecoder.com`
 
 ## Fixture manifest
 

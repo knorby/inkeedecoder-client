@@ -1,10 +1,10 @@
 ---
-"@knorby/incidecoder-client": minor
+"@knorby/inkeedecoder-client": minor
 ---
 
-Initial release. Universal TypeScript scraper client for incidecoder.com:
+Initial release. Universal TypeScript scraper client for inkeedecoder.com:
 
-- `createIncidecoderClient` with injectable `fetch` (React Native / Metro safe).
+- `createInkeedecoderClient` with injectable `fetch` (React Native / Metro safe).
 - Methods: `search`, `searchProducts` (advanced include/exclude), `getProduct`,
   `getIngredient`, `getIngredientProducts`, `getBrand`, `getIngredientFunction`,
   `fetchHtml`.

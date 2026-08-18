@@ -1,7 +1,7 @@
 /**
  * URL/path/slug helpers. Implemented without `URL` from a Node-vs-RN-runtime
  * standpoint: a tiny, dependency-free string joiner keeps the library safe for
- * React Native's Hermes runtime. Paths on incidecoder.com are always
+ * React Native's Hermes runtime. Paths on inkeedecoder.com are always
  * site-relative ("/products/...").
  */
 

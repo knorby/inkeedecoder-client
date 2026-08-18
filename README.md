@@ -1,7 +1,7 @@
-# @knorby/incidecoder-client
+# @knorby/inkeedecoder-client
 
 A universal TypeScript client for scraping data from
-[incidecoder.com](https://incidecoder.com/) — products, ingredients, search
+[inkeedecoder.com](https://inkeedecoder.com/) — products, ingredients, search
 (simple + advanced), brands, and ingredient functions.
 
 - **Universal runtime.** No Node.js-only APIs. HTTP runs through an injectable
@@ -11,15 +11,15 @@ A universal TypeScript client for scraping data from
   full cheerio's `fromURL` import breaks bundling.
 - **Parse/transport split.** Every `parse*` function is a pure
   `(html) => data` export, so you can pair it with any prefetch/cache layer. The
-  `createIncidecoderClient()` convenience wrapper fetches + parses for you.
+  `createInkeedecoderClient()` convenience wrapper fetches + parses for you.
 - **Options everywhere.** Every object-returning method takes granular flags so
   lean output is the default and verbose sections (functions, skim table,
   CosIng data, long-form descriptions, …) are opt-in.
 - **Next-link pagination.** The authoritative "Next page >>" URL is read from
   the HTML rather than reconstructed, so the library is robust across
-  incidecoder.com's differing param schemes (`ppage`, `uoffset`, `offset`).
+  inkeedecoder.com's differing param schemes (`ppage`, `uoffset`, `offset`).
 
-> **Not affiliated with incidecoder.com.** This is an unofficial scraper. The
+> **Not affiliated with inkeedecoder.com.** This is an unofficial scraper. The
 > site's `robots.txt` permits crawling `/products`, `/ingredients`,
 > `/search`, `/brands`, and `/ingredient-functions` (it disallows only `/auth/`
 > and `/products/recommend/`). Be polite: keep request volume low, use the
@@ -29,7 +29,7 @@ A universal TypeScript client for scraping data from
 ## Install
 
 ```bash
-npm install @knorby/incidecoder-client
+npm install @knorby/inkeedecoder-client
 ```
 
 ### React Native
@@ -38,9 +38,9 @@ The library is Metro-safe out of the box (no `undici`/`parse5` in the bundle).
 `fetch` is injected, so in environments without a global `fetch` pass one:
 
 ```ts
-import { createIncidecoderClient } from "@knorby/incidecoder-client";
+import { createInkeedecoderClient } from "@knorby/inkeedecoder-client";
 
-const client = createIncidecoderClient({
+const client = createInkeedecoderClient({
   // fetch: myFetch,            // optional; defaults to globalThis.fetch
   requestIntervalMs: 1000,      // politeness delay for auto-pagination
   maxPages: 25,                 // safety cap per allPages operation
@@ -50,7 +50,7 @@ const client = createIncidecoderClient({
 ## Quick start
 
 ```ts
-const client = createIncidecoderClient();
+const client = createInkeedecoderClient();
 
 // Lean product (defaults): name, brand, description, ingredient set, original
 // image, hashtags.
@@ -100,11 +100,11 @@ const hits = await client.searchProducts({
 
 ## API
 
-### `createIncidecoderClient(options)`
+### `createInkeedecoderClient(options)`
 
 | Option             | Default                          | Description                                            |
 | ------------------ | -------------------------------- | ------------------------------------------------------ |
-| `baseUrl`          | `https://incidecoder.com`        | Base URL.                                              |
+| `baseUrl`          | `https://inkeedecoder.com`        | Base URL.                                              |
 | `fetch`            | `globalThis.fetch`               | Custom `fetch` (cached/proxied/RN).                    |
 | `headers`          | `{ User-Agent: … }`             | Extra request headers.                                 |
 | `requestIntervalMs` | `1000`                          | Delay between requests during auto-pagination.        |
@@ -143,11 +143,11 @@ turned off omits the key entirely (no empty placeholders).
 - `fetchHtml(target)` → raw HTML for any path/URL.
 
 Every list item is a `{ name, slug, path, url }` ref — the `slug` is the stable
-key for the entity on incidecoder.com.
+key for the entity on inkeedecoder.com.
 
 > **⚠️ Easy trap: `searchProducts` filters use the site's display names, not
 > INCI names.** `include`/`exclude` must match the ingredient names
-> incidecoder.com itself uses in its advanced-search UI — e.g. `"Squalane"` or
+> inkeedecoder.com itself uses in its advanced-search UI — e.g. `"Squalane"` or
 > group entries like `"Simple Alcohols"`, which have no INCI equivalent. A
 > formal INCI name can silently match nothing. The `name` on any ingredient
 > ref returned by this client is a reliable source of valid values (as is the
@@ -155,7 +155,7 @@ key for the entity on incidecoder.com.
 
 ## Limitations
 
-- **No UPC/barcode lookup.** incidecoder.com does not publish UPC/EAN/barcode
+- **No UPC/barcode lookup.** inkeedecoder.com does not publish UPC/EAN/barcode
   identifiers anywhere (verified across product pages and search), so there is
   nothing to scrape. Match products by `slug` or `name` instead.
 
@@ -165,9 +165,9 @@ For custom transport layers (RN prefetch, edge caches, raw HTML you already
 have), import the `parse*` functions directly:
 
 ```ts
-import { parseProductPage, parseIngredientPage, parseSearchPage } from "@knorby/incidecoder-client";
+import { parseProductPage, parseIngredientPage, parseSearchPage } from "@knorby/inkeedecoder-client";
 
-const product = parseProductPage(htmlString, "https://incidecoder.com");
+const product = parseProductPage(htmlString, "https://inkeedecoder.com");
 ```
 
 Also exported: `parseIngredientProductsPage`, `parseSearchProductsPage`,
@@ -179,7 +179,7 @@ Also exported: `parseIngredientProductsPage`, `parseSearchProductsPage`,
 | Command               | What it does                                                         |
 | --------------------- | -------------------------------------------------------------------- |
 | `npm test`            | Offline fixture-based unit + client tests (no network).             |
-| `npm run test:live`   | Hits the live site (`INCIDECODER_LIVE=1`) — a markup-change tripwire. |
+| `npm run test:live`   | Hits the live site (`INKEEDECODER_LIVE=1`) — a markup-change tripwire. |
 | `npm run test:coverage` | Coverage report.                                                  |
 
 Fixtures live in `tests/fixtures/` and are (re)captured with
