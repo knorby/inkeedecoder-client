@@ -5,7 +5,7 @@
  *
  * Pagination is "next-link driven": the authoritative "Next page >>" URL is
  * read from each page's HTML rather than reconstructed, so the library is
- * robust across incidecoder.com's differing param schemes (`ppage`,
+ * robust across inkeedecoder.com's differing param schemes (`ppage`,
  * `uoffset`, `offset`).
  */
 import { makePaginated, paginateAll, type RawList } from "./pagination.js";
@@ -23,7 +23,7 @@ import { parseProductPage } from "./parse/product.js";
 import type {
   Brand,
   ClientOptions,
-  IncidecoderClient,
+  InkeedecoderClient,
   Ingredient,
   IngredientFunction,
   IngredientProductsResult,
@@ -41,13 +41,13 @@ import type {
 } from "./types.js";
 import { isAbsoluteUrl, joinUrl, normalizeEntityId } from "./util/refs.js";
 
-const DEFAULT_BASE_URL = "https://incidecoder.com";
+const DEFAULT_BASE_URL = "https://inkeedecoder.com";
 const DEFAULT_REQUEST_INTERVAL_MS = 1000;
 const DEFAULT_MAX_PAGES = 25;
 const DEFAULT_USER_AGENT =
-  "@knorby/incidecoder-client/0 (+https://github.com/knorby/incidecoder-client)";
+  "@knorby/inkeedecoder-client/0 (+https://github.com/knorby/inkeedecoder-client)";
 
-/** Build a query string, `+`-encoding spaces to match incidecoder.com URLs. */
+/** Build a query string, `+`-encoding spaces to match inkeedecoder.com URLs. */
 function buildQuery(
   params: ReadonlyArray<readonly [string, string | string[] | undefined]>,
 ): string {
@@ -214,12 +214,12 @@ function projectIngredient(
 }
 
 /**
- * Create an incidecoder.com client. The client is stateless aside from its
+ * Create an inkeedecoder.com client. The client is stateless aside from its
  * configuration; safe to share across an app.
  */
-export function createIncidecoderClient(
+export function createInkeedecoderClient(
   options: ClientOptions = {},
-): IncidecoderClient {
+): InkeedecoderClient {
   const baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
   const doFetch = options.fetch ?? globalThis.fetch;
   const extraHeaders = options.headers ?? {};
@@ -229,7 +229,7 @@ export function createIncidecoderClient(
 
   if (typeof doFetch !== "function") {
     throw new Error(
-      "createIncidecoderClient: no global `fetch` available. Pass `fetch` in options.",
+      "createInkeedecoderClient: no global `fetch` available. Pass `fetch` in options.",
     );
   }
 
@@ -255,7 +255,7 @@ export function createIncidecoderClient(
 
   /**
    * Simple search implementation (typed by the `search` overloads on
-   * {@link IncidecoderClient}). Without `opts.tab` both tabs are returned;
+   * {@link InkeedecoderClient}). Without `opts.tab` both tabs are returned;
    * with `opts.tab` a single tab is fetched in exactly one request per page
    * (and only that tab is walked for `allPages`).
    */
@@ -350,10 +350,10 @@ export function createIncidecoderClient(
     };
   }
 
-  const client: IncidecoderClient = {
+  const client: InkeedecoderClient = {
     fetchHtml,
 
-    search: search as IncidecoderClient["search"],
+    search: search as InkeedecoderClient["search"],
 
     async searchProducts(
       filters: ProductSearchFilters,

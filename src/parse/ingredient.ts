@@ -204,7 +204,7 @@ export function parseIngredientProductsPage(
     items.push(ref);
   });
   const nextPageUrl = (() => {
-    // NOTE: "ingreient" is incidecoder.com's own typo in this attribute
+    // NOTE: "ingreient" is inkeedecoder.com's own typo in this attribute
     // value — it matches the live site, so do not "fix" it.
     const href = $("a[data-ga-eventcategory='ingreient-product-next']").attr(
       "href",

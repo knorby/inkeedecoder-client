@@ -5,7 +5,7 @@
 
 ## Context
 
-INCIDecoder paginates with a *different* param scheme per page type:
+INKEEDecoder paginates with a *different* param scheme per page type:
 
 | Page type               | Param           |
 | ----------------------- | --------------- |
@@ -36,7 +36,7 @@ could change). Separately, callers may want to use their own transport layer
 
 - Adding a new page type is: write a parser; add a client method that fetches +
   parses + paginates. No selector knowledge leaks into the client.
-- If INCIDecoder renames a pagination param, the next-link extraction keeps
+- If INKEEDecoder renames a pagination param, the next-link extraction keeps
   working without code changes.
 - Parallel/`allPages` aggregation is centralized in `paginateAll`, which
   enforces `maxPages` + `requestIntervalMs` politeness for every list method.

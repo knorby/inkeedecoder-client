@@ -1,19 +1,19 @@
 {
-  "name": "@knorby/incidecoder-client",
+  "name": "@knorby/inkeedecoder-client",
   "version": "0.0.0",
-  "description": "A universal TypeScript client for scraping data from incidecoder.com — products, ingredients, search, brands, and ingredient functions.",
+  "description": "A universal TypeScript client for scraping data from inkeedecoder.com — products, ingredients, search, brands, and ingredient functions.",
   "license": "Apache-2.0",
   "author": "knorby",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/knorby/incidecoder-client.git"
+    "url": "git+https://github.com/knorby/inkeedecoder-client.git"
   },
-  "homepage": "https://github.com/knorby/incidecoder-client#readme",
+  "homepage": "https://github.com/knorby/inkeedecoder-client#readme",
   "bugs": {
-    "url": "https://github.com/knorby/incidecoder-client/issues"
+    "url": "https://github.com/knorby/inkeedecoder-client/issues"
   },
   "keywords": [
-    "incidecoder",
+    "inkeedecoder",
     "skincare",
     "ingredients",
     "scraper",
@@ -60,7 +60,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:live": "INCIDECODER_LIVE=1 vitest run --config vitest.live.config.ts",
+    "test:live": "INKEEDECODER_LIVE=1 vitest run --config vitest.live.config.ts",
     "release": "npm run build && changeset publish",
     "prepare": "husky"
   },

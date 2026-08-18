@@ -9,4 +9,4 @@ export function fixture(name: string): string {
   return readFileSync(join(__dirname, "fixtures", name), "utf8");
 }
 
-export const BASE_URL = "https://incidecoder.com";
+export const BASE_URL = "https://inkeedecoder.com";

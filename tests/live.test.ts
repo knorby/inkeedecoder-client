@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { createIncidecoderClient } from "../src/client.js";
+import { createInkeedecoderClient } from "../src/client.js";
 
-const LIVE = process.env.INCIDECODER_LIVE === "1";
+const LIVE = process.env.INKEEDECODER_LIVE === "1";
 
-const client = createIncidecoderClient({
+const client = createInkeedecoderClient({
   requestIntervalMs: 600,
   maxPages: 3,
 });
 
 // These tests hit the live site. They assert that the core extraction contracts
-// still hold — failures flag that incidecoder.com's markup has changed in a
-// way the parsers don't handle. They are skipped unless INCIDECODER_LIVE=1.
-describe.skipIf(!LIVE)("live incidecoder.com", () => {
+// still hold — failures flag that inkeedecoder.com's markup has changed in a
+// way the parsers don't handle. They are skipped unless INKEEDECODER_LIVE=1.
+describe.skipIf(!LIVE)("live inkeedecoder.com", () => {
   it("parses a real product page", async () => {
     const p = await client.getProduct("the-ordinary-retinol-1-in-squalane", {
       functions: true,

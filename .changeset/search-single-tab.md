@@ -1,5 +1,5 @@
 ---
-"@knorby/incidecoder-client": minor
+"@knorby/inkeedecoder-client": minor
 ---
 
 - `search()` now accepts `{ tab: "products" | "ingredients" }` to fetch a

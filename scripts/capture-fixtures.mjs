@@ -1,4 +1,4 @@
-// Dev utility: (re)captures live incidecoder.com HTML into tests/fixtures/*.html
+// Dev utility: (re)captures live inkeedecoder.com HTML into tests/fixtures/*.html
 // so the fixture-based unit tests stay offline + deterministic. Run with:
 //   node scripts/capture-fixtures.mjs
 // The captured pages double as a site-change tripwire; refresh when updating
@@ -10,9 +10,9 @@ import { dirname, join } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(__dirname, "..", "tests", "fixtures");
 
-const BASE = "https://incidecoder.com";
+const BASE = "https://inkeedecoder.com";
 const UA =
-  "@knorby/incidecoder-client/0 (capture-fixtures; +https://github.com/knorby/incidecoder-client)";
+  "@knorby/inkeedecoder-client/0 (capture-fixtures; +https://github.com/knorby/inkeedecoder-client)";
 
 const PAGES = [
   ["product-the-ordinary-retinol-1-in-squalane.html", "/products/the-ordinary-retinol-1-in-squalane"],
