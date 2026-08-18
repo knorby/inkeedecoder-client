@@ -23,6 +23,7 @@ import { parseProductPage } from "./parse/product.js";
 import type {
   Brand,
   ClientOptions,
+  IncidecoderClient,
   Ingredient,
   IngredientFunction,
   IngredientProductsResult,
@@ -33,6 +34,9 @@ import type {
   ProductSearchFilters,
   ProductSearchResult,
   Ref,
+  SearchQuery,
+  SearchTab,
+  SearchTabResult,
   SearchResult,
 } from "./types.js";
 import { isAbsoluteUrl, joinUrl, normalizeEntityId } from "./util/refs.js";
@@ -215,7 +219,7 @@ function projectIngredient(
  */
 export function createIncidecoderClient(
   options: ClientOptions = {},
-): import("./types.js").IncidecoderClient {
+): IncidecoderClient {
   const baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
   const doFetch = options.fetch ?? globalThis.fetch;
   const extraHeaders = options.headers ?? {};
@@ -249,68 +253,107 @@ export function createIncidecoderClient(
     return { maxPages, delayMs: requestIntervalMs };
   }
 
-  const client = {
-    fetchHtml,
+  /**
+   * Simple search implementation (typed by the `search` overloads on
+   * {@link IncidecoderClient}). Without `opts.tab` both tabs are returned;
+   * with `opts.tab` a single tab is fetched in exactly one request per page
+   * (and only that tab is walked for `allPages`).
+   */
+  async function search(
+    query: string,
+    opts?: SearchQuery,
+  ): Promise<SearchResult | SearchTabResult> {
+    const page = pageOf(opts);
+    // Per-tab URL: `activetab` selects the tab, `ppage` the page within it
+    // (the site's own "Next page >>" links on tabs use this scheme).
+    const tabUrl = (tab: SearchTab, p: number) =>
+      `/search${buildQuery([
+        ["query", query],
+        ["activetab", tab],
+        ["ppage", p > 1 ? String(p) : undefined],
+      ])}`;
 
-    async search(query: string, opts?: ListQuery): Promise<SearchResult> {
-      const page = pageOf(opts);
-
-      // Page 1 is the combined page (both tabs). Deeper pages are per-tab —
-      // the site paginates each tab independently via `activetab` + `ppage`
-      // (see its own "Next page >>" links) — so fetch each tab at `page`.
-      if (opts?.allPages !== true && page > 1) {
-        const tabPath = (tab: "products" | "ingredients") =>
-          `/search${buildQuery([
-            ["query", query],
-            ["activetab", tab],
-            ["ppage", String(page)],
-          ])}`;
-        const productsParsed = parseSearchPage(
-          await fetchHtml(tabPath("products")),
-          baseUrl,
-        );
-        const ingredientsParsed = parseSearchPage(
-          await fetchHtml(tabPath("ingredients")),
-          baseUrl,
-        );
-        return {
-          query: productsParsed.query || query,
-          products: makePaginated(productsParsed.products, page),
-          ingredients: makePaginated(ingredientsParsed.ingredients, page),
-        };
-      }
-
-      const parsed = parseSearchPage(
-        await fetchHtml(`/search${buildQuery([["query", query]])}`),
+    // Single tab: one request for the requested page.
+    if (opts?.tab) {
+      const tab = opts.tab;
+      const first = parseSearchPage(
+        await fetchHtml(tabUrl(tab, page)),
         baseUrl,
       );
-
-      if (opts?.allPages !== true) {
+      if (opts.allPages !== true) {
         return {
-          query: parsed.query,
-          products: makePaginated(parsed.products, page),
-          ingredients: makePaginated(parsed.ingredients, page),
+          query: first.query || query,
+          tab,
+          results: makePaginated(first[tab], page),
         };
       }
-
-      const po = paginateOpts();
-      const mergedProducts = await paginateAll<Ref>(
-        parsed.products,
-        async (url) => parseSearchPage(await fetchHtml(url), baseUrl).products,
-        po,
-      );
-      const mergedIngredients = await paginateAll<Ref>(
-        parsed.ingredients,
-        async (url) =>
-          parseSearchPage(await fetchHtml(url), baseUrl).ingredients,
-        po,
+      // allPages: walk only this tab from page 1.
+      const merged = await paginateAll<Ref>(
+        first[tab],
+        async (url) => parseSearchPage(await fetchHtml(url), baseUrl)[tab],
+        paginateOpts(),
       );
       return {
-        query: parsed.query,
-        products: makePaginated(mergedProducts, 1),
-        ingredients: makePaginated(mergedIngredients, 1),
+        query: first.query || query,
+        tab,
+        results: makePaginated(merged, 1),
       };
-    },
+    }
+
+    // Page 1 is the combined page (both tabs). Deeper pages are per-tab —
+    // the site paginates each tab independently via `activetab` + `ppage`
+    // (see its own "Next page >>" links) — so fetch each tab at `page`.
+    if (opts?.allPages !== true && page > 1) {
+      const productsParsed = parseSearchPage(
+        await fetchHtml(tabUrl("products", page)),
+        baseUrl,
+      );
+      const ingredientsParsed = parseSearchPage(
+        await fetchHtml(tabUrl("ingredients", page)),
+        baseUrl,
+      );
+      return {
+        query: productsParsed.query || query,
+        products: makePaginated(productsParsed.products, page),
+        ingredients: makePaginated(ingredientsParsed.ingredients, page),
+      };
+    }
+
+    const parsed = parseSearchPage(
+      await fetchHtml(`/search${buildQuery([["query", query]])}`),
+      baseUrl,
+    );
+
+    if (opts?.allPages !== true) {
+      return {
+        query: parsed.query,
+        products: makePaginated(parsed.products, page),
+        ingredients: makePaginated(parsed.ingredients, page),
+      };
+    }
+
+    const po = paginateOpts();
+    const mergedProducts = await paginateAll<Ref>(
+      parsed.products,
+      async (url) => parseSearchPage(await fetchHtml(url), baseUrl).products,
+      po,
+    );
+    const mergedIngredients = await paginateAll<Ref>(
+      parsed.ingredients,
+      async (url) => parseSearchPage(await fetchHtml(url), baseUrl).ingredients,
+      po,
+    );
+    return {
+      query: parsed.query,
+      products: makePaginated(mergedProducts, 1),
+      ingredients: makePaginated(mergedIngredients, 1),
+    };
+  }
+
+  const client: IncidecoderClient = {
+    fetchHtml,
+
+    search: search as IncidecoderClient["search"],
 
     async searchProducts(
       filters: ProductSearchFilters,

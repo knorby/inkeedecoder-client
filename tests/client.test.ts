@@ -225,6 +225,61 @@ describe("search", () => {
     expect(r.products.hasMore).toBe(false);
     expect(urls.some((u) => u.includes("ppage=2"))).toBe(true);
   });
+
+  describe("tab selector", () => {
+    it("fetches a single tab in one request at page 1", async () => {
+      const { c, urls } = makeClient();
+      const r = await c.search("the ordinary", { tab: "products" });
+      expect(urls).toEqual([
+        "https://incidecoder.com/search?query=the+ordinary&activetab=products",
+      ]);
+      expect(r.tab).toBe("products");
+      expect(r.query).toBe("the ordinary");
+      expect(r.results.page).toBe(1);
+      expect(r.results.items.length).toBe(50);
+      expect(r.results.hasMore).toBe(true);
+      expect(r.results.nextPageUrl).toMatch(/activetab=products&ppage=2/);
+    });
+
+    it("fetches a single tab in one request at page >= 2", async () => {
+      const { c, urls } = makeClient();
+      const r = await c.search("squalane", { page: 2, tab: "products" });
+      expect(urls).toEqual([
+        "https://incidecoder.com/search?query=squalane&activetab=products&ppage=2",
+      ]);
+      expect(r.tab).toBe("products");
+      expect(r.results.page).toBe(2);
+      expect(r.results.items.length).toBeGreaterThan(0);
+    });
+
+    it("walks only the chosen tab for allPages", async () => {
+      const { c, urls } = makeClient();
+      const r = await c.search("the ordinary", {
+        tab: "products",
+        allPages: true,
+      });
+      // Page 1 + the (empty) ppage=2 follow-up; the ingredients tab is
+      // never requested.
+      expect(urls.length).toBe(2);
+      expect(urls.every((u) => !u.includes("activetab=ingredients"))).toBe(
+        true,
+      );
+      expect(r.tab).toBe("products");
+      expect(r.results.items.length).toBe(50);
+      expect(r.results.hasMore).toBe(false);
+    });
+
+    it("fetches the ingredients tab alone", async () => {
+      const { c, urls } = makeClient();
+      const r = await c.search("squalane", { page: 2, tab: "ingredients" });
+      expect(urls).toEqual([
+        "https://incidecoder.com/search?query=squalane&activetab=ingredients&ppage=2",
+      ]);
+      expect(r.tab).toBe("ingredients");
+      expect(r.results.items.length).toBe(1);
+      expect(r.results.items[0]?.slug).toBe("squalane");
+    });
+  });
 });
 
 describe("searchProducts (advanced)", () => {

@@ -51,7 +51,10 @@ export type {
   ProductSearchResult,
   ProductTooltip,
   Ref,
+  SearchQuery,
   SearchResult,
+  SearchTab,
+  SearchTabResult,
   SkimRow,
 } from "./types.js";
 export {

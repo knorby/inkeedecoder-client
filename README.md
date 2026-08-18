@@ -81,7 +81,15 @@ console.log(results.products.items.length, results.products.hasMore);
 // ...or fetch every page of both tabs:
 const all = await client.search("the ordinary", { allPages: true });
 
-// Advanced product search (ingredient include/exclude, site display names).
+// ...or fetch a single tab — exactly one request at any page (the both-tabs
+// form costs two requests from page 2 on):
+const productsOnly = await client.search("the ordinary", {
+  tab: "products",
+  page: 3,
+});
+
+// Advanced product search (include/exclude use the site's display names —
+// see the warning under "Methods").
 const hits = await client.searchProducts({
   query: "the ordinary",
   include: ["Squalane"],
@@ -111,6 +119,10 @@ turned off omits the key entirely (no empty placeholders).
 - `search(query, opts?)` → both products + ingredients tabs. Page 1 is one
   combined request; `{ page: 2 }`+ fetches each tab separately (`activetab` +
   `ppage`); `{ allPages }` follows each tab's next links from page 1.
+  `{ tab: "products" | "ingredients" }` selects a single tab: exactly one
+  request at any page — half the cost of the both-tabs form at `page ≥ 2` —
+  and `allPages` walks only that tab. A tabbed call returns
+  `{ query, tab, results }` instead of `{ query, products, ingredients }`.
 - `searchProducts(filters, opts?)` → advanced search (include/exclude);
   `{ page }` (uses `ppage`) and `{ allPages }`.
 - `getProduct(id, opts?)` → `id` is a slug, path, or URL. Flags (defaults in
@@ -132,6 +144,20 @@ turned off omits the key entirely (no empty placeholders).
 
 Every list item is a `{ name, slug, path, url }` ref — the `slug` is the stable
 key for the entity on incidecoder.com.
+
+> **⚠️ Easy trap: `searchProducts` filters use the site's display names, not
+> INCI names.** `include`/`exclude` must match the ingredient names
+> incidecoder.com itself uses in its advanced-search UI — e.g. `"Squalane"` or
+> group entries like `"Simple Alcohols"`, which have no INCI equivalent. A
+> formal INCI name can silently match nothing. The `name` on any ingredient
+> ref returned by this client is a reliable source of valid values (as is the
+> ingredient's page title on the site).
+
+## Limitations
+
+- **No UPC/barcode lookup.** incidecoder.com does not publish UPC/EAN/barcode
+  identifiers anywhere (verified across product pages and search), so there is
+  nothing to scrape. Match products by `slug` or `name` instead.
 
 ### Pure parsers (no fetch)
 

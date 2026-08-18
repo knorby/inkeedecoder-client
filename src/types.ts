@@ -222,11 +222,36 @@ export interface ListQuery {
   allPages?: boolean;
 }
 
+/** Which `/search` results tab to fetch: products or ingredients. */
+export type SearchTab = "products" | "ingredients";
+
+/**
+ * Options for {@link IncidecoderClient.search}: {@link ListQuery} plus a
+ * single-tab selector.
+ */
+export interface SearchQuery extends ListQuery {
+  /**
+   * Fetch only this tab. A tabbed search costs one request at any page — the
+   * combined (both-tabs) result needs two separate requests at `page >= 2` —
+   * and `{ allPages: true }` walks only this tab. When set, the result is a
+   * {@link SearchTabResult} instead of a {@link SearchResult}.
+   */
+  tab?: SearchTab;
+}
+
 /** `search()` results. Both tabs are returned; each paginates independently. */
 export interface SearchResult {
   query: string;
   products: Paginated<Ref>;
   ingredients: Paginated<Ref>;
+}
+
+/** `search()` result when `opts.tab` is set: the chosen tab's page of results. */
+export interface SearchTabResult {
+  query: string;
+  /** The tab these results came from. */
+  tab: SearchTab;
+  results: Paginated<Ref>;
 }
 
 /** `searchProducts()` results (advanced include/exclude filter). */
@@ -290,9 +315,22 @@ export interface IncidecoderClient {
   /**
    * Simple search; returns both products and ingredients tabs. Page 1 is a
    * single combined request; `{ page: 2 }`+ fetches each tab separately
-   * (`activetab` + `ppage`). `{ allPages }` walks both tabs from page 1.
+   * (`activetab` + `ppage`); `{ allPages }` walks both tabs from page 1.
    */
-  search(query: string, opts?: ListQuery): Promise<SearchResult>;
+  search(
+    query: string,
+    opts?: SearchQuery & { tab?: undefined },
+  ): Promise<SearchResult>;
+  /**
+   * Single-tab search (`{ tab: "products" | "ingredients" }`): exactly one
+   * request at any page — half the cost of the combined result at `page >= 2`
+   * — and `{ allPages }` walks only the chosen tab. Returns the tab's items
+   * under `results`.
+   */
+  search(
+    query: string,
+    opts: SearchQuery & { tab: SearchTab },
+  ): Promise<SearchTabResult>;
   /** Advanced product search with ingredient include/exclude filters. */
   searchProducts(
     filters: ProductSearchFilters,
