@@ -83,7 +83,9 @@ describe("url/path helpers", () => {
     expect(joinUrl("https://inkeedecoder.com/", "https://other.com/y")).toBe(
       "https://other.com/y",
     );
-    expect(joinUrl("https://inkeedecoder.com", "//cdn/x")).toBe("https://cdn/x");
+    expect(joinUrl("https://inkeedecoder.com", "//cdn/x")).toBe(
+      "https://cdn/x",
+    );
   });
 
   it("parsePath reduces hrefs to site paths", () => {
@@ -91,6 +93,11 @@ describe("url/path helpers", () => {
       parsePath("https://inkeedecoder.com/ingredients/squalane?x=1#y"),
     ).toBe("/ingredients/squalane");
     expect(parsePath("/brands/the-ordinary")).toBe("/brands/the-ordinary");
+  });
+
+  it("parsePath handles protocol-relative hrefs", () => {
+    expect(parsePath("//cdn.example.com/img/x.png?v=1")).toBe("/img/x.png");
+    expect(parsePath("//cdn.example.com")).toBe("/");
   });
 
   it("slugFromPath returns the last segment", () => {
@@ -115,5 +122,16 @@ describe("url/path helpers", () => {
         "brands",
       ),
     ).toEqual({ slug: "the-ordinary", path: "/brands/the-ordinary" });
+  });
+
+  it("normalizeEntityId strips query/hash from relative ids", () => {
+    expect(normalizeEntityId("/products/foo?ppage=2", "products")).toEqual({
+      slug: "foo",
+      path: "/products/foo",
+    });
+    expect(normalizeEntityId("squalane#functions", "ingredients")).toEqual({
+      slug: "squalane",
+      path: "/ingredients/squalane",
+    });
   });
 });

@@ -157,10 +157,12 @@ PRs and release them all at once.
   `.changeset/*.md` file alongside the code change.
 - **To release**: `npx changeset version` (bumps `package.json` +
   `CHANGELOG.md`), then `npm run release` (builds + publishes).
-- **GitHub Actions release** (`.github/workflows/release.yml`): disabled by
-  default (`workflow_dispatch` only). To enable automated releases, change the
-  trigger to `push: branches: [main]`. The changesets action opens a "Version
-  Packages" PR; merging it publishes to npm + creates a GitHub Release.
+- **GitHub Actions release** (`.github/workflows/release.yml`): runs on every
+  push to `main`. When changesets are pending, the changesets action opens (or
+  updates) a "Version Packages" PR; merging it publishes to npm with provenance
+  and creates the git tag + GitHub Release. Requires the `NPM_TOKEN` repo
+  secret (granular token, publish permission) and a public repo for provenance
+  attestation. Pushes with no pending changesets are no-ops.
 - **Always verify before publishing**: `npm run build && npm pack --dry-run`
   to confirm only `dist/` + docs are included.
 
@@ -176,8 +178,8 @@ PRs and release them all at once.
 - **Scoped names** — use `@yourscope/package` names to prevent dependency
   confusion attacks.
 - **No secrets in published files** — the `files` field in `package.json`
-  whitelists only `dist`, `README.md`, and `CHANGELOG.md`. Never add `src/`,
-  `.env`, `tsconfig.json`, or other config to the `files` list.
+  whitelists only `dist`, `README.md`, `CHANGELOG.md`, and `LICENSE`. Never add
+  `src/`, `.env`, `tsconfig.json`, or other config to the `files` list.
 - **`.npmrc`** — `ignore-scripts=true` blocks dependency `postinstall`
   scripts by default (supply-chain security). This also blocks this repo's
   own `prepare` script, so `npm install` will not auto-set-up Husky hooks —
@@ -230,7 +232,7 @@ These rules are mandatory. Follow them strictly.
   ```bash
   npm run lint && npm run typecheck && npm test && npm run build
   ```
-- Verify that `npm pack --dry-run` includes only `dist/`, `README.md`, and
-  `CHANGELOG.md` (no source, config, or secret files).
+- Verify that `npm pack --dry-run` includes only `dist/`, `README.md`,
+  `CHANGELOG.md`, and `LICENSE` (no source, config, or secret files).
 - Verify that `AGENTS.md` and `README.md` still reflect the current state of
   the repository.

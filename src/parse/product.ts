@@ -11,7 +11,7 @@ import type {
   ProductTooltip,
   SkimRow,
 } from "../types.js";
-import { joinUrl } from "../util/refs.js";
+import { joinUrl, parsePath } from "../util/refs.js";
 import {
   extractPercent,
   normalizeText,
@@ -40,7 +40,7 @@ export function parseProductPage(html: string, baseUrl: string): Product {
   const compareUrl =
     $("#compare-controls button[data-postlinkurl]").attr("data-postlinkurl") ??
     "";
-  const slug = compareUrl.split("/").filter(Boolean).pop() ?? "";
+  const slug = parsePath(compareUrl).split("/").filter(Boolean).pop() ?? "";
 
   const name = normalizeText($("#product-title").text());
 

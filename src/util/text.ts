@@ -17,7 +17,7 @@ export function normalizeText(input: string | null | undefined): string {
   return input.replace(ZERO_WIDTH, "").replace(WHITESPACE, " ").trim();
 }
 
-/** Extract a percentage (e.g. "1.0%") from a display string, if present. */
+/** Extract a percentage (e.g. "1.0", without the percent sign) from a display string, if present. */
 export function extractPercent(input: string): string | undefined {
   const match = input.match(/(\d+(?:[.,]\d+)?)\s*%/);
   return match?.[1]?.replace(",", ".");

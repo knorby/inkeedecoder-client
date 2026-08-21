@@ -108,9 +108,11 @@ git add . && git commit -m "chore: release" && git push
 ```
 
 **Automated release (GitHub Actions):**
-Enable the `release.yml` workflow (change the trigger from `workflow_dispatch`
-to `push: branches: [main]`). The changesets action will open a "Version
-Packages" PR; merging it publishes to npm and creates a GitHub Release.
+The `release.yml` workflow runs on every push to `main`. When changesets are
+pending, the changesets action opens (or updates) a "Version Packages" PR;
+merging it publishes to npm with provenance and creates a GitHub Release.
+Requires the `NPM_TOKEN` repo secret and a public repo (for provenance
+attestation).
 
 ### Before publishing, always verify
 
@@ -129,7 +131,7 @@ npm pack --dry-run    # verify only dist/ + docs are included
 - **Scoped names** — use `@yourscope/package` names to prevent dependency
   confusion attacks.
 - **No secrets in the package** — the `files` field in `package.json`
-  whitelists only `dist`, `README.md`, and `CHANGELOG.md`.
+  whitelists only `dist`, `README.md`, `CHANGELOG.md`, and `LICENSE`.
 
 ## Pull request process
 
