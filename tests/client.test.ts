@@ -269,6 +269,23 @@ describe("search", () => {
       expect(r.results.hasMore).toBe(false);
     });
 
+    it("allPages ignores opts.page and starts at page 1", async () => {
+      const { c, urls } = makeClient();
+      const r = await c.search("the ordinary", {
+        tab: "products",
+        page: 3,
+        allPages: true,
+      });
+      // The walk starts at page 1 (no ppage param); page 3 is never fetched.
+      expect(urls[0]).toBe(
+        "https://inkeedecoder.com/search?query=the+ordinary&activetab=products",
+      );
+      expect(urls.every((u) => !u.includes("ppage=3"))).toBe(true);
+      expect(r.results.page).toBe(1);
+      expect(r.results.items.length).toBe(50); // page 1 items + empty page 2
+      expect(r.results.hasMore).toBe(false);
+    });
+
     it("fetches the ingredients tab alone", async () => {
       const { c, urls } = makeClient();
       const r = await c.search("squalane", { page: 2, tab: "ingredients" });
@@ -292,6 +309,19 @@ describe("searchProducts (advanced)", () => {
     });
     expect(r.items.length).toBeGreaterThan(0);
     expect(r.items[0]?.path).toMatch(/^\/products\//);
+  });
+
+  it("serializes repeated include params and include-mode=any", async () => {
+    const { c, urls } = makeClient();
+    await c.searchProducts({
+      query: "the ordinary",
+      include: ["Squalane", "Retinol"],
+      exclude: ["Simple Alcohols"],
+      includeMode: "any",
+    });
+    expect(urls[0]).toBe(
+      "https://inkeedecoder.com/search/product?query=the+ordinary&include=Squalane&include=Retinol&exclude=Simple+Alcohols&include-mode=any",
+    );
   });
 
   it("aggregates allPages (single page of results here)", async () => {
@@ -389,6 +419,15 @@ describe("getIngredientFunction", () => {
     expect(f.ingredients.hasMore).toBe(true);
     expect(f.ingredients.nextPageUrl).toMatch(/offset=1/);
   });
+
+  it("aggregates allPages (page 2 empty)", async () => {
+    const f = await client().getIngredientFunction("emollient", {
+      allPages: true,
+    });
+    expect(f.ingredients.items.length).toBe(50);
+    expect(f.ingredients.hasMore).toBe(false);
+    expect(f.ingredients.page).toBe(1);
+  });
 });
 
 describe("getIngredientProducts", () => {
@@ -406,6 +445,17 @@ describe("getIngredientProducts", () => {
     });
     expect(r.knownAmountProducts?.length).toBeGreaterThan(0);
     expect(r.knownAmountProducts?.[0]?.path).toMatch(/^\/products\//);
+  });
+
+  it("aggregates allPages and keeps the known-amount carousel", async () => {
+    const r = await client().getIngredientProducts("tocopherol", {
+      allPages: true,
+      includeKnownAmount: true,
+    });
+    expect(r.products.items.length).toBeGreaterThan(20);
+    expect(r.products.hasMore).toBe(false);
+    expect(r.products.page).toBe(1);
+    expect(r.knownAmountProducts?.length).toBeGreaterThan(0);
   });
 });
 
@@ -443,6 +493,46 @@ describe("createInkeedecoderClient guard", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("request headers", () => {
+  function headerRecordingFetch(
+    seen: Array<Record<string, string>>,
+  ): typeof fetch {
+    return (async (
+      _input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      seen.push((init?.headers ?? {}) as Record<string, string>);
+      return makeResponse(EMPTY_HTML);
+    }) as unknown as typeof fetch;
+  }
+
+  it("sends the default User-Agent on every request", async () => {
+    const seen: Array<Record<string, string>> = [];
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: headerRecordingFetch(seen),
+      requestIntervalMs: 0,
+    });
+    await c.fetchHtml("/x");
+    expect(seen[0]?.["User-Agent"]).toBe(
+      "@knorby/inkeedecoder-client/0 (+https://github.com/knorby/inkeedecoder-client)",
+    );
+  });
+
+  it("merges custom headers over the defaults", async () => {
+    const seen: Array<Record<string, string>> = [];
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: headerRecordingFetch(seen),
+      headers: { "X-Custom": "yes", "User-Agent": "my-agent/1.0" },
+      requestIntervalMs: 0,
+    });
+    await c.fetchHtml("/x");
+    expect(seen[0]?.["X-Custom"]).toBe("yes");
+    expect(seen[0]?.["User-Agent"]).toBe("my-agent/1.0"); // caller override wins
   });
 });
 

@@ -1,14 +1,15 @@
 name: Release
 
-# Disabled by default — manual trigger only.
-# To enable automated releases on every merge to main, change the trigger to:
-#   on:
-#     push:
-#       branches: [main]
-# Then the changesets action will open a "Version Packages" PR that publishes
-# on merge.
+# Runs on every push to main. When changesets are pending, the changesets
+# action opens (or updates) a "Version Packages" PR; merging that PR consumes
+# the changesets, publishes to npm with provenance, and creates the git tag +
+# GitHub Release. Pushes with no pending changesets are no-ops.
+#
+# Requires the NPM_TOKEN repo secret (granular token with publish permission)
+# and a public repository for npm provenance attestation.
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 

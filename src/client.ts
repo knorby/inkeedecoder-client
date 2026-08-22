@@ -23,11 +23,11 @@ import { parseProductPage } from "./parse/product.js";
 import type {
   Brand,
   ClientOptions,
-  InkeedecoderClient,
   Ingredient,
   IngredientFunction,
   IngredientProductsResult,
   IngredientQuery,
+  InkeedecoderClient,
   ListQuery,
   Product,
   ProductQuery,
@@ -35,9 +35,9 @@ import type {
   ProductSearchResult,
   Ref,
   SearchQuery,
+  SearchResult,
   SearchTab,
   SearchTabResult,
-  SearchResult,
 } from "./types.js";
 import { isAbsoluteUrl, joinUrl, normalizeEntityId } from "./util/refs.js";
 
@@ -273,14 +273,16 @@ export function createInkeedecoderClient(
         ["ppage", p > 1 ? String(p) : undefined],
       ])}`;
 
-    // Single tab: one request for the requested page.
+    // Single tab: one request for the requested page. allPages always walks
+    // from page 1, ignoring `opts.page` (matching every other list method).
     if (opts?.tab) {
       const tab = opts.tab;
+      const wantAll = opts.allPages === true;
       const first = parseSearchPage(
-        await fetchHtml(tabUrl(tab, page)),
+        await fetchHtml(tabUrl(tab, wantAll ? 1 : page)),
         baseUrl,
       );
-      if (opts.allPages !== true) {
+      if (!wantAll) {
         return {
           query: first.query || query,
           tab,

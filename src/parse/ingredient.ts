@@ -8,7 +8,7 @@ import type {
   KnownAmountProductRef,
   Ref,
 } from "../types.js";
-import { joinUrl } from "../util/refs.js";
+import { joinUrl, parsePath } from "../util/refs.js";
 import { normalizeText, ourTakeFromText } from "../util/text.js";
 
 interface GlobalJson {
@@ -114,7 +114,7 @@ function slugFallback($: CheerioAPI): string | undefined {
   if (!href) {
     return undefined;
   }
-  const segs = href.split("/").filter(Boolean);
+  const segs = parsePath(href).split("/").filter(Boolean);
   return segs[segs.length - 1];
 }
 

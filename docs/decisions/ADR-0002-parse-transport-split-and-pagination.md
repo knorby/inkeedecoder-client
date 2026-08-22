@@ -1,4 +1,4 @@
-# ADR-0003: Parse/transport split and next-link-driven pagination
+# ADR-0002: Parse/transport split and next-link-driven pagination
 
 - **Status:** Accepted
 - **Date:** 2026-08-16

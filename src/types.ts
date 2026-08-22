@@ -68,11 +68,11 @@ export interface IngredientLongEntry {
   description?: string;
 }
 
-/** A reference to a product, with optional display metadata. */
+/** A reference to an ingredient, with optional display metadata. */
 export interface IngredientRef extends Ref {
   /** INKEEDecoder editorial rating, when present. */
   ourTake?: OurTake;
-  /** Declared active percentage (e.g. "1.0%"), when present on the link text. */
+  /** Declared active percentage (e.g. "1.0", without the percent sign), when present on the link text. */
   percent?: string;
 }
 

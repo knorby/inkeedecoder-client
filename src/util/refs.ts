@@ -31,7 +31,8 @@ export function parsePath(href: string): string {
   if (m) {
     h = m[1] ?? "";
   } else if (h.startsWith("//")) {
-    h = h.slice(h.indexOf("/", 2)); // strip "//host" leave "/..."
+    const rest = h.indexOf("/", 2); // strip "//host" leave "/..."
+    h = rest === -1 ? "/" : h.slice(rest);
   }
   h = h.split("?")[0]?.split("#")[0] ?? "";
   if (h && !h.startsWith("/")) {
@@ -63,7 +64,9 @@ export function normalizeEntityId(
 ): { slug: string; path: string } {
   let p = id.trim();
   if (isAbsoluteUrl(p)) {
-    p = parsePath(p);
+    p = parsePath(p); // strips origin + query/hash
+  } else {
+    p = p.split("?")[0]?.split("#")[0] ?? ""; // strip query/hash
   }
   if (!p.startsWith("/")) {
     p = `/${p}`;

@@ -1,4 +1,4 @@
-# ADR-0002: React-Native-safe dependency strategy (cheerio/slim + injectable fetch)
+# ADR-0001: React-Native-safe dependency strategy (cheerio/slim + injectable fetch)
 
 - **Status:** Accepted
 - **Date:** 2026-08-16
