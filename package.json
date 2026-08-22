@@ -1,6 +1,6 @@
 {
   "name": "@knorby/inkeedecoder-client",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A universal TypeScript client for scraping data from inkeedecoder.com — products, ingredients, search, brands, and ingredient functions.",
   "license": "Apache-2.0",
   "author": "knorby",
