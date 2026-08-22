@@ -111,8 +111,10 @@ git add . && git commit -m "chore: release" && git push
 The `release.yml` workflow runs on every push to `main`. When changesets are
 pending, the changesets action opens (or updates) a "Version Packages" PR;
 merging it publishes to npm with provenance and creates a GitHub Release.
-Requires the `NPM_TOKEN` repo secret and a public repo (for provenance
-attestation).
+Publishing authenticates via npm trusted publishing (OIDC) — no npm token is
+stored in repo secrets. The trusted publisher is configured on npmjs.com for
+this repo, the `release.yml` workflow, and the `release` GitHub environment.
+Requires a public repo (for provenance attestation).
 
 ### Before publishing, always verify
 
@@ -124,8 +126,9 @@ npm pack --dry-run    # verify only dist/ + docs are included
 ## Publishing security
 
 - **2FA** — enable on your npm account: `npm profile enable-2fa auth-and-writes`
-- **Granular tokens** — use npm Granular Access Tokens (scoped to the package,
-  publish-only, time-limited). Classic tokens were revoked in December 2025.
+- **Trusted publishing (no tokens)** — CI publishes authenticate via npm
+  trusted publishing (OIDC from GitHub Actions); no npm token is stored in
+  repo secrets. Classic tokens were revoked in December 2025.
 - **Provenance** — this repo publishes with `--provenance` (cryptographic
   attestation linking the published package to the commit + workflow).
 - **Scoped names** — use `@yourscope/package` names to prevent dependency

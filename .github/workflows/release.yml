@@ -2,11 +2,15 @@ name: Release
 
 # Runs on every push to main. When changesets are pending, the changesets
 # action opens (or updates) a "Version Packages" PR; merging that PR consumes
-# the changesets, publishes to npm with provenance, and creates the git tag +
-# GitHub Release. Pushes with no pending changesets are no-ops.
+# the changesets, publishes to npm, and creates the git tag + GitHub Release.
+# Pushes with no pending changesets are no-ops.
 #
-# Requires the NPM_TOKEN repo secret (granular token with publish permission)
-# and a public repository for npm provenance attestation.
+# Publishing uses npm trusted publishing (OIDC) — no npm token is stored in
+# repo secrets. The trusted publisher must be configured on npmjs.com
+# (package Settings → Trusted Publishing) for: repository knorby/
+# inkeedecoder-client, workflow filename release.yml, environment release.
+# npm CLI >= 11.5 is required for OIDC (Node 22 bundles npm 10.x, hence the
+# global upgrade below). Provenance additionally requires a public repo.
 on:
   push:
     branches: [main]
@@ -17,6 +21,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
       pull-requests: write
@@ -29,7 +34,7 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: npm
-          registry-url: "https://registry.npmjs.org"
+      - run: npm install -g npm@latest
       - run: npm ci
       - name: Create Release Pull Request or Publish
         id: changesets
@@ -38,4 +43,3 @@ jobs:
           publish-script: npm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
