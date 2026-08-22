@@ -160,19 +160,26 @@ PRs and release them all at once.
 - **GitHub Actions release** (`.github/workflows/release.yml`): runs on every
   push to `main`. When changesets are pending, the changesets action opens (or
   updates) a "Version Packages" PR; merging it publishes to npm with provenance
-  and creates the git tag + GitHub Release. Requires the `NPM_TOKEN` repo
-  secret (granular token, publish permission) and a public repo for provenance
-  attestation. Pushes with no pending changesets are no-ops.
+  and creates the git tag + GitHub Release. Publishing authenticates via npm
+  trusted publishing (OIDC) — there is no npm token in repo secrets. The
+  trusted publisher is configured on npmjs.com for this repo + the
+  `release.yml` workflow + the `release` GitHub environment (first publish of
+  a new package must be manual; npm only allows configuring trusted publishers
+  for existing packages). Requires a public repo for provenance attestation.
+  Pushes with no pending changesets are no-ops.
 - **Always verify before publishing**: `npm run build && npm pack --dry-run`
   to confirm only `dist/` + docs are included.
 
 ### Publishing security
 
 - **2FA** — enable on npm account: `npm profile enable-2fa auth-and-writes`.
-  Do not publish without 2FA.
-- **Granular tokens** — use npm Granular Access Tokens (scoped to the
-  package, publish-only, time-limited). Classic tokens were revoked in
-  December 2025.
+  Do not publish without 2FA. Trusted publishing (OIDC) is compatible with
+  auth-and-writes because no token or login is involved in CI publishes.
+- **Trusted publishing (no tokens)** — CI publishes authenticate via npm
+  trusted publishing (OIDC from GitHub Actions). No npm token is stored in
+  repo secrets; the trusted publisher is bound to this repo, the
+  `release.yml` workflow, and the `release` GitHub environment. Classic tokens
+  were revoked in December 2025.
 - **Provenance** — `publishConfig.provenance: true` in `package.json` enables
   npm provenance attestation (cryptographic link to commit + workflow).
 - **Scoped names** — use `@yourscope/package` names to prevent dependency
