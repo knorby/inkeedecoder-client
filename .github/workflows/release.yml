@@ -9,8 +9,10 @@ name: Release
 # repo secrets. The trusted publisher must be configured on npmjs.com
 # (package Settings → Trusted Publishing) for: repository knorby/
 # inkeedecoder-client, workflow filename release.yml, environment release.
-# npm CLI >= 11.5 is required for OIDC (Node 22 bundles npm 10.x, hence the
-# global upgrade below). Provenance additionally requires a public repo.
+# npm CLI >= 11.5.1 is required for OIDC. This job pins Node 24 (bundled npm
+# is 11.x) and still upgrades npm globally as a belt-and-braces measure, then
+# fails fast if the resolved npm is too old. The .nvmrc Node version continues
+# to apply to dev/CI tests. Provenance additionally requires a public repo.
 on:
   push:
     branches: [main]
@@ -32,9 +34,15 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
-          node-version-file: ".nvmrc"
+          # Node 24 bundles npm 11.x (trusted publishing needs npm >= 11.5.1;
+          # Node 22 from .nvmrc bundles npm 10.x, which cannot do OIDC).
+          node-version: 24
           cache: npm
       - run: npm install -g npm@latest
+      - name: Verify npm supports trusted publishing
+        run: |
+          npm --version
+          node -e "const [a,b]=process.argv[1].split('.').map(Number); if (a<11 || (a===11 && b<5)) { console.error('npm ' + process.argv[1] + ' is too old for trusted publishing (needs >= 11.5.1)'); process.exit(1); }" "$(npm --version)"
       - run: npm ci
       - name: Create Release Pull Request or Publish
         id: changesets
