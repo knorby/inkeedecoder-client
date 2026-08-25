@@ -1,5 +1,5 @@
-import type { BasicAcceptedElems, CheerioAPI } from "cheerio/slim";
 import type { AnyNode } from "domhandler";
+import type { Html, HtmlScope } from "../html.js";
 import { parseHtml, refFromAnchor } from "../html.js";
 import type { RawList } from "../pagination.js";
 import type {
@@ -16,7 +16,7 @@ interface GlobalJson {
   ingredientSlug?: string;
 }
 
-function readGlobalJson($: CheerioAPI): GlobalJson {
+function readGlobalJson($: Html): GlobalJson {
   const raw = $("#global").contents().first().text();
   if (!raw) {
     return {};
@@ -29,8 +29,8 @@ function readGlobalJson($: CheerioAPI): GlobalJson {
 }
 
 function findItempropValue(
-  $: CheerioAPI,
-  scope: BasicAcceptedElems<AnyNode>,
+  $: Html,
+  scope: HtmlScope,
   labelMatch: RegExp,
 ): string | undefined {
   let value: string | undefined;
@@ -109,7 +109,7 @@ export function parseIngredientPage(html: string, baseUrl: string): Ingredient {
   };
 }
 
-function slugFallback($: CheerioAPI): string | undefined {
+function slugFallback($: Html): string | undefined {
   const href = $(".inginfocontainer a[href*='/ingredients/']").attr("href");
   if (!href) {
     return undefined;
@@ -118,7 +118,7 @@ function slugFallback($: CheerioAPI): string | undefined {
   return segs[segs.length - 1];
 }
 
-function valueAfterB($: CheerioAPI, b: AnyNode): string {
+function valueAfterB($: Html, b: AnyNode): string {
   let val = "";
   let node: AnyNode | null = (b as AnyNode).nextSibling as AnyNode | null;
   while (node) {
@@ -131,7 +131,7 @@ function valueAfterB($: CheerioAPI, b: AnyNode): string {
   return normalizeText(val);
 }
 
-function parseCosing($: CheerioAPI): Ingredient["cosing"] {
+function parseCosing($: Html): Ingredient["cosing"] {
   const $hidden = $("#cosing-data .hidden").first();
   if (!$hidden.length) {
     return undefined;
@@ -172,7 +172,7 @@ function parseCosing($: CheerioAPI): Ingredient["cosing"] {
   return Object.keys(out).length ? out : undefined;
 }
 
-function parseProof($: CheerioAPI): string[] | undefined {
+function parseProof($: Html): string[] | undefined {
   const items: string[] = [];
   $("#proof ul.doclist li").each((_, li) => {
     const t = normalizeText($(li).text());
@@ -229,10 +229,7 @@ export function parseIngredientProductsPage(
   };
 }
 
-function parseKnownAmount(
-  $: CheerioAPI,
-  baseUrl: string,
-): KnownAmountProductRef[] {
+function parseKnownAmount($: Html, baseUrl: string): KnownAmountProductRef[] {
   const out: KnownAmountProductRef[] = [];
   $("#known-amount-carousel .productpreviewbox-v2").each((_, box) => {
     const $box = $(box);

@@ -5,8 +5,9 @@ Instructions and steering for AI coding agents working in this repository.
 `@knorby/inkeedecoder-client` is a universal TypeScript scraper client for
 [inkeedecoder.com](https://inkeedecoder.com/). It is built to run in React
 Native and other JS runtimes: HTTP goes through an injectable `fetch`, HTML
-parsing uses `cheerio/slim`, and no Node.js-only APIs are used in published
-code. Keep this file updated as conventions evolve.
+parsing uses a small cheerio-style adapter over `htmlparser2`/`css-select`,
+and no Node.js-only APIs are used in published code. Keep this file updated
+as conventions evolve.
 
 ---
 
@@ -16,11 +17,23 @@ code. Keep this file updated as conventions evolve.
   `Buffer`, or Node's `url` in `src/`. HTTP goes through the injectable
   `fetch`; URL building/parsing uses the tiny string helpers in
   `src/util/refs.ts` (no `URL` dependency).
-- **Cheerio is imported only from `cheerio/slim`** via the single wrapper
-  `src/html.ts`. Slim excludes `parse5` and `undici`, which keeps the bundle
-  React-Native/Metro-safe (full cheerio's `fromURL`→undici import breaks Metro).
-  If slim's htmlparser2 parser ever proves insufficient, swap the import in
-  `html.ts` only — do not import cheerio elsewhere.
+- **HTML parsing goes through the single adapter `src/html.ts`.** Runtime
+  dependencies are `htmlparser2`, `css-select`, `domutils`, and `domhandler`
+  — the same parse/selector stack cheerio/slim wraps, minus cheerio itself.
+  This keeps the bundle React-Native/Metro-safe and the dependency tree free
+  of cheerio's heavy transitive packages (`parse5`, `undici`, `whatwg-*`),
+  which Socket flagged as supply-chain risk. The adapter exposes a small
+  cheerio-like API (`Html` type: `$` overloads + `attr`/`text`/`each`/
+  `find`/`children`/`contents`/`nextAll`/`eq`/`first`/`last`/`addBack`);
+  extend it there if richer semantics are needed — do not import HTML
+  libraries elsewhere. Behavior parity is pinned by `tests/html.test.ts`.
+- **Residual Socket alerts are acknowledged, not chased.** `socket.yml`
+  disables the informational alert types that persist in any
+  selector-based stack (domutils' dead RSS-feed `fetch` reference,
+  boolbase triviality, entities' generated tables flagged as minified,
+  css-select AI-flag, benign URL strings). Do not re-enable them without
+  reviewing the underlying packages; do not add new runtime dependencies
+  that reintroduce `parse5`, `undici`, or `cheerio`.
 - **Parse/transport split.** Every `parse*` in `src/parse/` is a pure
   `(html, baseUrl) => data` function with no I/O. `src/client.ts` does fetch +
   parse + pagination + option projection. Keep new extraction logic in a
@@ -158,15 +171,20 @@ PRs and release them all at once.
 - **To release**: `npx changeset version` (bumps `package.json` +
   `CHANGELOG.md`), then `npm run release` (builds + publishes).
 - **GitHub Actions release** (`.github/workflows/release.yml`): runs on every
-  push to `main`. When changesets are pending, the changesets action opens (or
-  updates) a "Version Packages" PR; merging it publishes to npm with provenance
-  and creates the git tag + GitHub Release. Publishing authenticates via npm
-  trusted publishing (OIDC) — there is no npm token in repo secrets. The
-  trusted publisher is configured on npmjs.com for this repo + the
-  `release.yml` workflow + the `release` GitHub environment (first publish of
-  a new package must be manual; npm only allows configuring trusted publishers
-  for existing packages). Requires a public repo for provenance attestation.
-  Pushes with no pending changesets are no-ops.
+  push to `main`. The workflow follows the changesets v2 sub-action split —
+  `select-mode` inspects repo state, then either the `version` job opens
+  (or updates) a "Version Packages" PR, or the `pack` job builds + packs and
+  the `publish` job publishes to npm with provenance, pushes git tags, and
+  creates the GitHub Release. Merging the Version Packages PR re-triggers
+  the workflow in publish mode. Publishing authenticates via npm trusted
+  publishing (OIDC) — there is no npm token in repo secrets; top-level
+  permissions are reset to none and `id-token: write` exists only on the
+  publish job. The trusted publisher is configured on npmjs.com for this
+  repo + the `.github/workflows/release.yml` path + the `release` GitHub
+  environment (first publish of a new package must be manual; npm only
+  allows configuring trusted publishers for existing packages). Requires a
+  public repo for provenance attestation. Pushes with no pending changesets
+  are no-ops.
 - **Always verify before publishing**: `npm run build && npm pack --dry-run`
   to confirm only `dist/` + docs are included.
 

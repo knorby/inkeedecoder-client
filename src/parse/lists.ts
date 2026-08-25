@@ -3,8 +3,7 @@
  * search, brand product lists, and ingredient-function ingredient lists. They
  * all render results as `a.simpletextlistitem` anchors and a "Next page >>" link.
  */
-import type { BasicAcceptedElems } from "cheerio/slim";
-import type { AnyNode } from "domhandler";
+import type { HtmlScope } from "../html.js";
 import { parseHtml, refFromAnchor } from "../html.js";
 import type { RawList } from "../pagination.js";
 import { findNextLink } from "../pagination.js";
@@ -14,7 +13,7 @@ import { normalizeText } from "../util/text.js";
 /** Parse `a.simpletextlistitem` links (deduped by slug) + next-page link. */
 export function parseSimpleList(
   $: ReturnType<typeof parseHtml>,
-  scope: BasicAcceptedElems<AnyNode>,
+  scope: HtmlScope,
   baseUrl: string,
 ): RawList<Ref> {
   const items: Ref[] = [];

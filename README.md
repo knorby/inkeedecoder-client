@@ -6,9 +6,10 @@ A universal TypeScript client for scraping data from
 
 - **Universal runtime.** No Node.js-only APIs. HTTP runs through an injectable
   `fetch` (native in Node 20+, React Native, and browsers). HTML parsing uses
-  [`cheerio/slim`](https://cheerio.js.org/docs/intro) (excludes `parse5` and
-  `undici`), so the library bundles cleanly under React Native / Metro where
-  full cheerio's `fromURL` import breaks bundling.
+  a small cheerio-style adapter over [`htmlparser2`](https://github.com/fb55/htmlparser2)
+  + [`css-select`](https://github.com/fb55/css-select) — the same parse stack
+  cheerio's slim build wraps, minus cheerio's heavy transitive tree (`parse5`,
+  `undici`) — so the library bundles cleanly under React Native / Metro.
 - **Parse/transport split.** Every `parse*` function is a pure
   `(html) => data` export, so you can pair it with any prefetch/cache layer. The
   `createInkeedecoderClient()` convenience wrapper fetches + parses for you.
