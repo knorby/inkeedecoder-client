@@ -1,5 +1,4 @@
-import type { BasicAcceptedElems, CheerioAPI } from "cheerio/slim";
-import type { AnyNode } from "domhandler";
+import type { Html, HtmlScope } from "./html.js";
 import type { Paginated } from "./types.js";
 import { delay, joinUrl } from "./util/refs.js";
 
@@ -18,8 +17,8 @@ export interface RawList<T> {
  * extracting the link from the HTML we never have to construct or guess them.
  */
 export function findNextLink(
-  $: CheerioAPI,
-  scope: BasicAcceptedElems<AnyNode>,
+  $: Html,
+  scope: HtmlScope,
   baseUrl: string,
 ): string | undefined {
   const links = $(scope).find("a").addBack("a");

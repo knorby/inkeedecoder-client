@@ -1,4 +1,4 @@
-import type { CheerioAPI } from "cheerio/slim";
+import type { Html } from "../html.js";
 import { parseHtml, refFromAnchor } from "../html.js";
 import type {
   BrandRef,
@@ -90,7 +90,7 @@ export function parseProductPage(html: string, baseUrl: string): Product {
   };
 }
 
-function parseBrand($: CheerioAPI, baseUrl: string): BrandRef | undefined {
+function parseBrand($: Html, baseUrl: string): BrandRef | undefined {
   const $a = $("#product-brand-title a").first();
   if (!$a.length || !$a.attr("href")) {
     return undefined;
@@ -98,10 +98,7 @@ function parseBrand($: CheerioAPI, baseUrl: string): BrandRef | undefined {
   return refFromAnchor($, $a, baseUrl) as BrandRef;
 }
 
-function parseIngredientsShort(
-  $: CheerioAPI,
-  baseUrl: string,
-): IngredientRef[] {
+function parseIngredientsShort($: Html, baseUrl: string): IngredientRef[] {
   const out: IngredientRef[] = [];
   const seen = new Set<string>();
   $("#ingredlist-short")
@@ -134,7 +131,7 @@ function parseIngredientsShort(
   return out;
 }
 
-function parseImages($: CheerioAPI, baseUrl: string): Product["images"] {
+function parseImages($: Html, baseUrl: string): Product["images"] {
   const $pic = $("#product-main-image picture");
   if (!$pic.length) {
     return undefined;
@@ -162,7 +159,7 @@ function parseImages($: CheerioAPI, baseUrl: string): Product["images"] {
   };
 }
 
-function parseHashtags($: CheerioAPI): Hashtag[] {
+function parseHashtags($: Html): Hashtag[] {
   const out: Hashtag[] = [];
   $("#ingredlist-highlights-section")
     .find(".hashtag")
@@ -184,7 +181,7 @@ function parseHashtags($: CheerioAPI): Hashtag[] {
   return out;
 }
 
-function parseFullName($: CheerioAPI): string | undefined {
+function parseFullName($: Html): string | undefined {
   const raw = $("#compare-controls button[data-postlinkdata]").attr(
     "data-postlinkdata",
   );
@@ -199,7 +196,7 @@ function parseFullName($: CheerioAPI): string | undefined {
   }
 }
 
-function parseByFunction($: CheerioAPI, baseUrl: string): Product["functions"] {
+function parseByFunction($: Html, baseUrl: string): Product["functions"] {
   const scope = $("#ingredlist-highlights-section");
   const key: IngredientsByFunction[] = [];
   const other: IngredientsByFunction[] = [];
@@ -238,7 +235,7 @@ function parseByFunction($: CheerioAPI, baseUrl: string): Product["functions"] {
   return { key, other };
 }
 
-function parseSkimTable($: CheerioAPI, baseUrl: string): SkimRow[] | undefined {
+function parseSkimTable($: Html, baseUrl: string): SkimRow[] | undefined {
   const rows: SkimRow[] = [];
   $("#ingredlist-table-section table.product-skim tbody tr").each((_, tr) => {
     const $tr = $(tr);
@@ -270,7 +267,7 @@ function parseSkimTable($: CheerioAPI, baseUrl: string): SkimRow[] | undefined {
   return rows.length ? rows : undefined;
 }
 
-function parseDates($: CheerioAPI): Product["dates"] {
+function parseDates($: Html): Product["dates"] {
   const $scope = $(".prodinfobox, .prodnexttoimage").first();
   const times = $scope.find("time[datetime]");
   if (!times.length) {
@@ -302,7 +299,7 @@ function parseDates($: CheerioAPI): Product["dates"] {
   return Object.keys(dates).length ? dates : undefined;
 }
 
-function parseTooltips($: CheerioAPI, baseUrl: string): ProductTooltip[] {
+function parseTooltips($: Html, baseUrl: string): ProductTooltip[] {
   const out: ProductTooltip[] = [];
   $("span.tooltip_templates")
     .find("span[id]")
@@ -341,7 +338,7 @@ function parseTooltips($: CheerioAPI, baseUrl: string): ProductTooltip[] {
 }
 
 function parseLongDescriptions(
-  $: CheerioAPI,
+  $: Html,
   baseUrl: string,
 ): IngredientLongEntry[] {
   const out: IngredientLongEntry[] = [];

@@ -108,13 +108,17 @@ git add . && git commit -m "chore: release" && git push
 ```
 
 **Automated release (GitHub Actions):**
-The `release.yml` workflow runs on every push to `main`. When changesets are
-pending, the changesets action opens (or updates) a "Version Packages" PR;
-merging it publishes to npm with provenance and creates a GitHub Release.
-Publishing authenticates via npm trusted publishing (OIDC) — no npm token is
-stored in repo secrets. The trusted publisher is configured on npmjs.com for
-this repo, the `release.yml` workflow, and the `release` GitHub environment.
-Requires a public repo (for provenance attestation).
+The `release.yml` workflow runs on every push to `main`. It follows the
+changesets v2 sub-action split: `select-mode` inspects repo state, then
+either the `version` job opens (or updates) a "Version Packages" PR, or the
+`pack` + `publish` jobs build, pack, and publish to npm with provenance,
+pushing git tags and creating a GitHub Release. Merging the Version Packages
+PR re-triggers the workflow in publish mode. Publishing authenticates via
+npm trusted publishing (OIDC) — no npm token is stored in repo secrets;
+top-level permissions are reset to none and `id-token: write` exists only on
+the publish job. The trusted publisher is configured on npmjs.com for this
+repo, the `.github/workflows/release.yml` path, and the `release` GitHub
+environment. Requires a public repo (for provenance attestation).
 
 ### Before publishing, always verify
 

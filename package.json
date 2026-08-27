@@ -48,7 +48,10 @@
     "node": ">=20"
   },
   "dependencies": {
-    "cheerio": "^1.2.0"
+    "css-select": "^5.2.2",
+    "domhandler": "^5.0.3",
+    "domutils": "^3.2.2",
+    "htmlparser2": "^10.1.0"
   },
   "scripts": {
     "build": "tsup && tsc --emitDeclarationOnly && node -e \"require('fs').copyFileSync('dist/index.d.ts','dist/index.d.cts')\"",
