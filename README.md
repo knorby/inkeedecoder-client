@@ -1,5 +1,10 @@
 # @knorby/inkeedecoder-client
 
+[![Tests](https://github.com/knorby/inkeedecoder-client/actions/workflows/tests.yml/badge.svg)](https://github.com/knorby/inkeedecoder-client/actions/workflows/tests.yml)
+[![Codecov](https://codecov.io/gh/knorby/inkeedecoder-client/branch/main/graph/badge.svg)](https://codecov.io/gh/knorby/inkeedecoder-client)
+[![npm version](https://img.shields.io/npm/v/@knorby/inkeedecoder-client.svg)](https://www.npmjs.com/package/@knorby/inkeedecoder-client)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](./LICENSE)
+
 A universal TypeScript client for scraping data from
 [inkeedecoder.com](https://inkeedecoder.com/) — products, ingredients, search
 (simple + advanced), brands, and ingredient functions.
