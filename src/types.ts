@@ -141,6 +141,8 @@ export interface ProductQuery {
   tooltips?: boolean;
   /** Per-ingredient long writeup text. Default `false`. */
   longDescriptions?: boolean;
+  /** Cancel this request (e.g. when the caller/user abandons it). */
+  signal?: AbortSignal;
 }
 
 /**
@@ -188,6 +190,8 @@ export interface IngredientQuery {
   details?: boolean;
   /** Reference list. Default `false`. */
   proof?: boolean;
+  /** Cancel this request (e.g. when the caller/user abandons it). */
+  signal?: AbortSignal;
 }
 
 /** A product shown in the "known amount" carousel on an ingredient page. */
@@ -220,6 +224,8 @@ export interface ListQuery {
   page?: number;
   /** Follow next-page links and merge all results (subject to client `maxPages`). */
   allPages?: boolean;
+  /** Cancel this request (e.g. when the caller/user abandons it). */
+  signal?: AbortSignal;
 }
 
 /** Which `/search` results tab to fetch: products or ingredients. */
@@ -302,16 +308,29 @@ export interface ClientOptions {
   fetch?: typeof fetch;
   /** Extra request headers (e.g. a custom User-Agent). */
   headers?: Record<string, string>;
-  /** Politeness delay (ms) between requests during auto-pagination. Default `1000`. */
+  /**
+   * Minimum spacing (ms) between requests. Every request the client makes is
+   * spaced — searches, lookups, and pagination walks alike — so a burst of
+   * calls cannot flood the site. Default `1000`.
+   */
   requestIntervalMs?: number;
+  /**
+   * Abort any request that takes longer than this (ms), counted from when the
+   * request starts — the `requestIntervalMs` queue wait beforehand is not
+   * included. `0` disables the timeout. Default `30000`.
+   */
+  timeoutMs?: number;
   /** Safety cap on pages fetched per `allPages` operation. Default `25`. */
   maxPages?: number;
 }
 
 /** The client returned by {@link createInkeedecoderClient}. */
 export interface InkeedecoderClient {
-  /** Fetch raw HTML for any inkeedecoder.com path/URL. */
-  fetchHtml(target: string): Promise<string>;
+  /**
+   * Fetch raw HTML for any inkeedecoder.com path/URL. Pass a `signal` to
+   * cancel the request; the client's `timeoutMs` applies here too.
+   */
+  fetchHtml(target: string, signal?: AbortSignal): Promise<string>;
   /**
    * Simple search; returns both products and ingredients tabs. Page 1 is a
    * single combined request; `{ page: 2 }`+ fetches each tab separately

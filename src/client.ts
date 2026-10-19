@@ -7,6 +7,11 @@
  * read from each page's HTML rather than reconstructed, so the library is
  * robust across inkeedecoder.com's differing param schemes (`ppage`,
  * `uoffset`, `offset`).
+ *
+ * Request control lives here, not in the callers: every request is spaced by
+ * `requestIntervalMs` (a scheduler shared across the client instance, so rapid
+ * sequential calls honour the interval too), aborted after `timeoutMs`, and
+ * cancellable through a per-call `AbortSignal`.
  */
 import { makePaginated, paginateAll, type RawList } from "./pagination.js";
 import {
@@ -39,10 +44,16 @@ import type {
   SearchTab,
   SearchTabResult,
 } from "./types.js";
-import { isAbsoluteUrl, joinUrl, normalizeEntityId } from "./util/refs.js";
+import {
+  delay,
+  isAbsoluteUrl,
+  joinUrl,
+  normalizeEntityId,
+} from "./util/refs.js";
 
 const DEFAULT_BASE_URL = "https://inkeedecoder.com";
 const DEFAULT_REQUEST_INTERVAL_MS = 1000;
+const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_PAGES = 25;
 const DEFAULT_USER_AGENT =
   "@knorby/inkeedecoder-client/0 (+https://github.com/knorby/inkeedecoder-client)";
@@ -225,6 +236,7 @@ export function createInkeedecoderClient(
   const extraHeaders = options.headers ?? {};
   const requestIntervalMs =
     options.requestIntervalMs ?? DEFAULT_REQUEST_INTERVAL_MS;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxPages = options.maxPages ?? DEFAULT_MAX_PAGES;
 
   if (typeof doFetch !== "function") {
@@ -238,18 +250,96 @@ export function createInkeedecoderClient(
     ...extraHeaders,
   };
 
-  async function fetchHtml(target: string): Promise<string> {
+  // One scheduler per client instance: requests start at least
+  // `requestIntervalMs` apart, in call order, however the caller interleaves
+  // them. `lastRequestStartedAt` starts at 0 so the first request never waits.
+  let lastRequestStartedAt = 0;
+  let queue: Promise<void> = Promise.resolve();
+
+  function schedule(url: string, signal?: AbortSignal): Promise<void> {
+    const run = queue.then(async () => {
+      const waitMs = lastRequestStartedAt + requestIntervalMs - Date.now();
+      if (waitMs > 0) {
+        // Abortable wait: a caller cancelling while queued rejects on the
+        // abort instead of waiting out the interval.
+        await delay(waitMs, signal);
+      }
+      // Checked after the wait so an aborted call never consumes pacing.
+      if (signal?.aborted) {
+        throw abortedError(url);
+      }
+      lastRequestStartedAt = Date.now();
+    });
+    // Keep the chain alive no matter what a scheduled slot does.
+    queue = run.catch(() => {});
+    return run;
+  }
+
+  /** An abort, in the shape callers should expect. */
+  function abortedError(url: string): Error {
+    const error = new Error(`Request to ${url} was aborted`);
+    error.name = "AbortError";
+    return error;
+  }
+
+  async function fetchHtml(
+    target: string,
+    signal?: AbortSignal,
+  ): Promise<string> {
     const url = toUrl(baseUrl, target);
-    const res = await doFetch(url, { headers: defaultHeaders });
-    if (!res.ok) {
-      throw new Error(
-        `Request to ${url} failed: ${res.status} ${res.statusText}`,
-      );
+    await schedule(url, signal);
+    if (signal?.aborted) {
+      throw abortedError(url);
     }
-    return res.text();
+
+    // A per-request controller merges the caller's signal with the timeout.
+    const controller = new AbortController();
+    const onAbort = () => controller.abort();
+    signal?.addEventListener("abort", onAbort, { once: true });
+    let timedOut = false;
+    const timer =
+      timeoutMs > 0
+        ? setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+          }, timeoutMs)
+        : undefined;
+
+    try {
+      const res = await doFetch(url, {
+        headers: defaultHeaders,
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        throw new Error(
+          `Request to ${url} failed: ${res.status} ${res.statusText}`,
+        );
+      }
+      return await res.text();
+    } catch (error) {
+      // Attribution order matters: the caller's abort outranks the timeout,
+      // which may have fired while a delayed abort rejection was in flight.
+      if (signal?.aborted) {
+        throw abortedError(url);
+      }
+      if (timedOut) {
+        throw new Error(`Request to ${url} timed out after ${timeoutMs} ms`);
+      }
+      if (controller.signal.aborted) {
+        throw abortedError(url);
+      }
+      throw error;
+    } finally {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+      signal?.removeEventListener("abort", onAbort);
+    }
   }
 
   function paginateOpts() {
+    // `delayMs` keeps the standalone `paginateAll` contract; the scheduler
+    // above is what actually spaces it against everything else.
     return { maxPages, delayMs: requestIntervalMs };
   }
 
@@ -279,7 +369,7 @@ export function createInkeedecoderClient(
       const tab = opts.tab;
       const wantAll = opts.allPages === true;
       const first = parseSearchPage(
-        await fetchHtml(tabUrl(tab, wantAll ? 1 : page)),
+        await fetchHtml(tabUrl(tab, wantAll ? 1 : page), opts.signal),
         baseUrl,
       );
       if (!wantAll) {
@@ -292,7 +382,8 @@ export function createInkeedecoderClient(
       // allPages: walk only this tab from page 1.
       const merged = await paginateAll<Ref>(
         first[tab],
-        async (url) => parseSearchPage(await fetchHtml(url), baseUrl)[tab],
+        async (url) =>
+          parseSearchPage(await fetchHtml(url, opts.signal), baseUrl)[tab],
         paginateOpts(),
       );
       return {
@@ -307,11 +398,11 @@ export function createInkeedecoderClient(
     // (see its own "Next page >>" links) — so fetch each tab at `page`.
     if (opts?.allPages !== true && page > 1) {
       const productsParsed = parseSearchPage(
-        await fetchHtml(tabUrl("products", page)),
+        await fetchHtml(tabUrl("products", page), opts?.signal),
         baseUrl,
       );
       const ingredientsParsed = parseSearchPage(
-        await fetchHtml(tabUrl("ingredients", page)),
+        await fetchHtml(tabUrl("ingredients", page), opts?.signal),
         baseUrl,
       );
       return {
@@ -322,7 +413,7 @@ export function createInkeedecoderClient(
     }
 
     const parsed = parseSearchPage(
-      await fetchHtml(`/search${buildQuery([["query", query]])}`),
+      await fetchHtml(`/search${buildQuery([["query", query]])}`, opts?.signal),
       baseUrl,
     );
 
@@ -337,12 +428,15 @@ export function createInkeedecoderClient(
     const po = paginateOpts();
     const mergedProducts = await paginateAll<Ref>(
       parsed.products,
-      async (url) => parseSearchPage(await fetchHtml(url), baseUrl).products,
+      async (url) =>
+        parseSearchPage(await fetchHtml(url, opts?.signal), baseUrl).products,
       po,
     );
     const mergedIngredients = await paginateAll<Ref>(
       parsed.ingredients,
-      async (url) => parseSearchPage(await fetchHtml(url), baseUrl).ingredients,
+      async (url) =>
+        parseSearchPage(await fetchHtml(url, opts?.signal), baseUrl)
+          .ingredients,
       po,
     );
     return {
@@ -374,14 +468,21 @@ export function createInkeedecoderClient(
         ]);
 
       if (!wantAll) {
-        const raw = parseSearchProductsPage(await fetchHtml(path), baseUrl);
+        const raw = parseSearchProductsPage(
+          await fetchHtml(path, opts?.signal),
+          baseUrl,
+        );
         return makePaginated(raw, page);
       }
 
-      const first = parseSearchProductsPage(await fetchHtml(path), baseUrl);
+      const first = parseSearchProductsPage(
+        await fetchHtml(path, opts?.signal),
+        baseUrl,
+      );
       const merged = await paginateAll<Ref>(
         first,
-        async (url) => parseSearchProductsPage(await fetchHtml(url), baseUrl),
+        async (url) =>
+          parseSearchProductsPage(await fetchHtml(url, opts?.signal), baseUrl),
         paginateOpts(),
       );
       return makePaginated(merged, 1);
@@ -389,7 +490,7 @@ export function createInkeedecoderClient(
 
     async getProduct(id: string, opts?: ProductQuery): Promise<Product> {
       const { slug, path } = normalizeEntityId(id, "products");
-      const html = await fetchHtml(path);
+      const html = await fetchHtml(path, opts?.signal);
       const full = parseProductPage(html, baseUrl);
       // Override identity with the normalized id (canonical).
       if (!full.slug) {
@@ -405,7 +506,7 @@ export function createInkeedecoderClient(
       opts?: IngredientQuery,
     ): Promise<Ingredient> {
       const { slug, path } = normalizeEntityId(id, "ingredients");
-      const html = await fetchHtml(path);
+      const html = await fetchHtml(path, opts?.signal);
       const full = parseIngredientPage(html, baseUrl);
       if (!full.slug) {
         full.slug = slug;
@@ -427,7 +528,7 @@ export function createInkeedecoderClient(
       if (opts?.allPages !== true) {
         const url = page > 1 ? `${path}?uoffset=${page - 1}` : path;
         const parsed = parseIngredientProductsPage(
-          await fetchHtml(url),
+          await fetchHtml(url, opts?.signal),
           baseUrl,
         );
         return {
@@ -438,11 +539,17 @@ export function createInkeedecoderClient(
       }
 
       // allPages: start at page 1 and follow "Next page" links.
-      const first = parseIngredientProductsPage(await fetchHtml(path), baseUrl);
+      const first = parseIngredientProductsPage(
+        await fetchHtml(path, opts?.signal),
+        baseUrl,
+      );
       const merged = await paginateAll<Ref>(
         first.products,
         async (url) =>
-          parseIngredientProductsPage(await fetchHtml(url), baseUrl).products,
+          parseIngredientProductsPage(
+            await fetchHtml(url, opts?.signal),
+            baseUrl,
+          ).products,
         paginateOpts(),
       );
       return {
@@ -461,14 +568,15 @@ export function createInkeedecoderClient(
       // allPages always walks from page 1, ignoring `opts.page`.
       const firstPage = wantAll ? 1 : page;
       const firstParsed = parseBrandPage(
-        await fetchHtml(path + pageParam(firstPage)),
+        await fetchHtml(path + pageParam(firstPage), opts?.signal),
         baseUrl,
       );
       const raw: RawList<Ref> = wantAll
         ? await paginateAll<Ref>(
             firstParsed.products,
             async (url) =>
-              parseBrandPage(await fetchHtml(url), baseUrl).products,
+              parseBrandPage(await fetchHtml(url, opts?.signal), baseUrl)
+                .products,
             paginateOpts(),
           )
         : firstParsed.products;
@@ -491,7 +599,7 @@ export function createInkeedecoderClient(
       const wantAll = opts?.allPages === true;
 
       if (!wantAll) {
-        const html = await fetchHtml(firstUrl);
+        const html = await fetchHtml(firstUrl, opts?.signal);
         const parsed = parseIngredientFunctionPage(html, baseUrl);
         return {
           slug,
@@ -503,13 +611,15 @@ export function createInkeedecoderClient(
         };
       }
 
-      const firstHtml = await fetchHtml(path + pageParam(1));
+      const firstHtml = await fetchHtml(path + pageParam(1), opts?.signal);
       const firstParsed = parseIngredientFunctionPage(firstHtml, baseUrl);
       const merged = await paginateAll<Ref>(
         firstParsed.ingredients,
         async (url) =>
-          parseIngredientFunctionPage(await fetchHtml(url), baseUrl)
-            .ingredients,
+          parseIngredientFunctionPage(
+            await fetchHtml(url, opts?.signal),
+            baseUrl,
+          ).ingredients,
         paginateOpts(),
       );
       return {

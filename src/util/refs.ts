@@ -83,10 +83,28 @@ export function normalizeEntityId(
   return { slug, path: p };
 }
 
-/** Number-matching delay helper (no Node timers needed beyond globalThis). */
-export function delay(ms: number): Promise<void> {
-  if (ms <= 0) {
+/**
+ * Number-matching delay helper (no Node timers needed beyond globalThis).
+ * When `signal` is given the wait ends early on abort (resolving, never
+ * rejecting — callers check `signal.aborted` afterwards).
+ */
+export function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  if (ms <= 0 || signal?.aborted) {
     return Promise.resolve();
   }
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  if (!signal) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(finish, ms);
+    function onAbort() {
+      finish();
+    }
+    function finish() {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 }

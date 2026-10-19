@@ -23,9 +23,10 @@ A universal TypeScript client for scraping data from
 > **Not affiliated with inkeedecoder.com.** This is an unofficial scraper. The
 > site's `robots.txt` permits crawling `/products`, `/ingredients`,
 > `/search`, `/brands`, and `/ingredient-functions` (it disallows only `/auth/`
-> and `/products/recommend/`). Be polite: keep request volume low, use the
-> client's `requestIntervalMs` for auto-pagination, don't republish the site's
-> prose, and prefer the lean option flags when you don't need verbose data.
+> and `/products/recommend/`). Be polite: keep request volume low — the client
+> spaces **every** request by `requestIntervalMs`, searches and lookups
+> included, not just auto-pagination walks — don't republish the site's prose,
+> and prefer the lean option flags when you don't need verbose data.
 
 ## Install
 
@@ -43,7 +44,8 @@ import { createInkeedecoderClient } from "@knorby/inkeedecoder-client";
 
 const client = createInkeedecoderClient({
   // fetch: myFetch,            // optional; defaults to globalThis.fetch
-  requestIntervalMs: 1000,      // politeness delay for auto-pagination
+  requestIntervalMs: 1000,      // minimum spacing between requests
+  timeoutMs: 30_000,            // abort a request that takes longer
   maxPages: 25,                 // safety cap per allPages operation
 });
 ```
@@ -108,7 +110,8 @@ const hits = await client.searchProducts({
 | `baseUrl`          | `https://inkeedecoder.com`        | Base URL.                                              |
 | `fetch`            | `globalThis.fetch`               | Custom `fetch` (cached/proxied/RN).                    |
 | `headers`          | `{ User-Agent: … }`             | Extra request headers.                                 |
-| `requestIntervalMs` | `1000`                          | Delay between requests during auto-pagination.        |
+| `requestIntervalMs` | `1000`                          | Minimum spacing between requests — applies to every request, not just pagination. |
+| `timeoutMs`        | `30_000`                         | Abort a request that takes longer. `0` disables the timeout. |
 | `maxPages`         | `25`                             | Safety cap on pages fetched per `allPages` operation. |
 
 ### Methods
@@ -141,7 +144,15 @@ turned off omits the key entirely (no empty placeholders).
   `{ allPages }`.
 - `getIngredientFunction(id, opts?)` → ingredient-function ingredient list
   (`offset`); `{ page }` / `{ allPages }`.
-- `fetchHtml(target)` → raw HTML for any path/URL.
+- `fetchHtml(target, signal?)` → raw HTML for any path/URL.
+
+Every options object above also accepts `signal` to cancel that call (aborted
+requests reject with an `AbortError` — cancellation is observed even while a
+call waits in the spacing queue), and every request is capped by the client's
+`timeoutMs` once it starts (the queue wait from `requestIntervalMs` spacing
+doesn't count against it), so a hung request never hangs the caller forever.
+Both rely on the `fetch` implementation honoring `init.signal`, as
+`globalThis.fetch` does.
 
 Every list item is a `{ name, slug, path, url }` ref — the `slug` is the stable
 key for the entity on inkeedecoder.com.

@@ -47,21 +47,26 @@ export function makePaginated<T>(raw: RawList<T>, page: number): Paginated<T> {
 }
 
 /**
- * Follow `nextPageUrl` links, merging all items, up to `maxPages` total pages,
- * spacing requests with `delayMs`. The `fetchAndParse` callback receives the
- * next URL and returns the next raw list. Used for `allPages: true`.
+ * Follow `nextPageUrl` links, merging all items, up to `maxPages` total pages.
+ * The `fetchAndParse` callback receives the next URL and returns the next raw
+ * list. Used for `allPages: true`. `delayMs`, when set, is awaited between
+ * pages — the client passes its `requestIntervalMs` here, while its shared
+ * scheduler spaces every request; the two never double-wait, because the
+ * scheduler only waits when no request has started within the interval.
  */
 export async function paginateAll<T>(
   first: RawList<T>,
   fetchAndParse: (url: string) => Promise<RawList<T>>,
-  opts: { maxPages: number; delayMs: number },
+  opts: { maxPages: number; delayMs?: number },
 ): Promise<RawList<T>> {
   const all: T[] = [...first.items];
   let next = first.nextPageUrl;
   let pages = 1;
   let hasMore = first.hasMore;
   while (next && pages < opts.maxPages) {
-    await delay(opts.delayMs);
+    if (opts.delayMs) {
+      await delay(opts.delayMs);
+    }
     const res = await fetchAndParse(next);
     all.push(...res.items);
     next = res.nextPageUrl;

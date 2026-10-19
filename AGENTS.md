@@ -51,8 +51,15 @@ as conventions evolve.
   before comparing/storing.
 - **Scraping etiquette.** `robots.txt` permits `/products`, `/ingredients`,
   `/search`, `/brands`, `/ingredient-functions` (disallows `/auth/` and
-  `/products/recommend/`). Keep request volume low, honor `requestIntervalMs`
-  for auto-pagination, and don't republish the site's prose verbatim.
+  `/products/recommend/`). Keep request volume low — the client's scheduler
+  spaces **every** request by `requestIntervalMs` (searches and lookups, not
+  just pagination) — and don't republish the site's prose verbatim.
+- **Request control lives in `fetchHtml`.** Spacing (`requestIntervalMs`),
+  the per-request timeout (`timeoutMs`), and caller cancellation (per-call
+  `signal`, normalized to an `AbortError`, observed even while queued) are
+  implemented once in the client's `schedule()` + `fetchHtml`. New methods
+  must fetch through `fetchHtml` so they inherit all three; never call
+  `doFetch` directly.
 
 ---
 

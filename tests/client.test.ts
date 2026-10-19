@@ -559,3 +559,140 @@ describe("fetchHtml", () => {
     );
   });
 });
+
+describe("request control", () => {
+  /** A fetch that never resolves on its own and rejects when aborted. */
+  function hangingFetch(): typeof fetch {
+    return ((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          reject(new Error("aborted"));
+        });
+      })) as unknown as typeof fetch;
+  }
+
+  it("spaces every request by requestIntervalMs, not just pagination", async () => {
+    const urls: string[] = [];
+    const interval = 60;
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: makeFetch(ROUTES, urls),
+      requestIntervalMs: interval,
+    });
+
+    const started = Date.now();
+    await c.getIngredient("squalane");
+    await c.getIngredient("squalane");
+    const elapsed = Date.now() - started;
+
+    expect(urls).toHaveLength(2);
+    expect(elapsed).toBeGreaterThanOrEqual(interval - 10);
+  });
+
+  it("does not space requests when requestIntervalMs is 0", async () => {
+    const urls: string[] = [];
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: makeFetch(ROUTES, urls),
+      requestIntervalMs: 0,
+    });
+
+    const started = Date.now();
+    await c.getIngredient("squalane");
+    await c.getIngredient("squalane");
+
+    expect(urls).toHaveLength(2);
+    // Generous upper bound: guards against accidentally spacing with the
+    // default 1000 ms, while tolerating slow CI.
+    expect(Date.now() - started).toBeLessThan(250);
+  });
+
+  it("times out a request that exceeds timeoutMs", async () => {
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: hangingFetch(),
+      requestIntervalMs: 0,
+      timeoutMs: 30,
+    });
+
+    await expect(c.getIngredient("squalane")).rejects.toThrow(
+      /timed out after 30 ms/,
+    );
+  });
+
+  it("prefers the caller's abort over the timeout when both land together", async () => {
+    // The fetch's abort-rejection is delayed so it lands *after* the timeout
+    // timer has fired: the caller's abort must still be what is reported.
+    const slowAbortFetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          setTimeout(() => reject(new Error("aborted")), 100);
+        });
+      })) as unknown as typeof fetch;
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: slowAbortFetch,
+      requestIntervalMs: 0,
+      timeoutMs: 50,
+    });
+
+    const controller = new AbortController();
+    const pending = c.getIngredient("squalane", { signal: controller.signal });
+    // Abort well before the timeout fires; its rejection arrives after.
+    setTimeout(() => controller.abort(), 10);
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejects promptly when aborted while queued behind the interval", async () => {
+    const urls: string[] = [];
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: makeFetch(ROUTES, urls),
+      requestIntervalMs: 3000,
+      timeoutMs: 0,
+    });
+
+    const first = c.getIngredient("squalane"); // occupies the current slot
+    const controller = new AbortController();
+    const queued = c.getIngredient("squalane", { signal: controller.signal });
+    setTimeout(() => controller.abort(), 30);
+
+    const started = Date.now();
+    await expect(queued).rejects.toMatchObject({ name: "AbortError" });
+    // Must reject on the abort (~30 ms), not wait out the 3000 ms interval.
+    expect(Date.now() - started).toBeLessThan(1000);
+    await first;
+  });
+
+  it("cancels an in-flight request when the caller's signal aborts", async () => {
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: hangingFetch(),
+      requestIntervalMs: 0,
+    });
+
+    const controller = new AbortController();
+    const pending = c.getIngredient("squalane", { signal: controller.signal });
+    // Let the request start, then cancel it.
+    setTimeout(() => controller.abort(), 10);
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("rejects without fetching when the signal is already aborted", async () => {
+    const urls: string[] = [];
+    const c = createInkeedecoderClient({
+      baseUrl: BASE_URL,
+      fetch: makeFetch(ROUTES, urls),
+      requestIntervalMs: 0,
+    });
+
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      c.fetchHtml("/ingredients/squalane", controller.signal),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(urls).toHaveLength(0);
+  });
+});
