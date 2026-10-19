@@ -49,6 +49,32 @@ const ROUTES: ReadonlyArray<{ match: string; file?: string; html?: string }> = [
     match: "query=squalane&activetab=ingredients&ppage=2",
     html: "<div id='ingredients'><a class='simpletextlistitem' href='/ingredients/squalane'>Squalane</a></div>",
   },
+  {
+    // Synthetic-query ingredients page 2 — must precede the generic
+    // `activetab=ingredients` route below (matching is first-match-wins).
+    match: "query=synthetic&activetab=ingredients&ppage=2",
+    html: "<div class='detailpage'><div id='ingredients'><a class='simpletextlistitem' href='/ingredients/beta'>Beta</a></div><div id='products'></div></div>",
+  },
+  {
+    // Ingredients-tab page 1 (no ppage param): one hit plus a next link so
+    // the allPages walk has a second page to follow.
+    match: "activetab=ingredients",
+    html: "<div class='detailpage'><div id='ingredients'><a class='simpletextlistitem' href='/ingredients/aloe'>Aloe</a><a href='/search?query=squalane&amp;activetab=ingredients&amp;ppage=2'>Next page &gt;&gt;</a></div><div id='products'></div></div>",
+  },
+  {
+    match: "/ingredients/synthetic-acid",
+    html: `<script id="global">{"ingredientDisplayName":"Synthetic Acid","ingredientSlug":"synthetic-acid"}</script>
+      <div class="ingredinfobox">
+        <div class="itemprop"><span class="label">Also-called-like-this: </span><span class="value">Synth Acid</span></div>
+      </div>
+      <div class="inginfocontainer"><picture><img src="/img/synthetic.jpg"></picture></div>`,
+  },
+  {
+    // Combined-search page 1 for the "synthetic" query: empty products tab,
+    // ingredients tab carries a next link for the allPages walk to follow.
+    match: "query=synthetic",
+    html: "<div class='detailpage'><div id='products'></div><div id='ingredients'><a class='simpletextlistitem' href='/ingredients/gamma'>Gamma</a><a href='/search?query=synthetic&amp;activetab=ingredients&amp;ppage=2'>Next page &gt;&gt;</a></div></div>",
+  },
   // Next-page URLs return an empty page so allPages loops terminate.
   { match: "ppage=", html: EMPTY_HTML },
   { match: "uoffset=", html: EMPTY_HTML },
@@ -57,6 +83,11 @@ const ROUTES: ReadonlyArray<{ match: string; file?: string; html?: string }> = [
   {
     match: "/products/the-ordinary-retinol-1-in-squalane",
     file: "product-the-ordinary-retinol-1-in-squalane.html",
+  },
+  {
+    // A page whose markup carries no slug source at all.
+    match: "/products/sparse-product",
+    html: EMPTY_HTML,
   },
   { match: "/ingredients/squalane", file: "ingredient-squalane.html" },
   { match: "/ingredients/tocopherol", file: "ingredient-tocopherol.html" },
@@ -694,5 +725,45 @@ describe("request control", () => {
       c.fetchHtml("/ingredients/squalane", controller.signal),
     ).rejects.toMatchObject({ name: "AbortError" });
     expect(urls).toHaveLength(0);
+  });
+});
+
+describe("client fallbacks and walks", () => {
+  it("falls back to the normalized id when the product page has no slug", async () => {
+    const { c } = makeClient();
+    const p = await c.getProduct("/products/sparse-product");
+    expect(p.slug).toBe("sparse-product");
+    expect(p.path).toBe("/products/sparse-product");
+    expect(p.url).toBe(`${BASE_URL}/products/sparse-product`);
+  });
+
+  it("projects alsoCalled and image for ingredients by default", async () => {
+    const { c } = makeClient();
+    const ing = await c.getIngredient("synthetic-acid");
+    expect(ing.alsoCalled).toBe("Synth Acid");
+    expect(ing.image).toBe(`${BASE_URL}/img/synthetic.jpg`);
+  });
+
+  it("walks the chosen ingredients tab across pages for allPages", async () => {
+    const { c, urls } = makeClient();
+    const r = await c.search("squalane", {
+      tab: "ingredients",
+      allPages: true,
+    });
+    expect(r.tab).toBe("ingredients");
+    // Page 1's Aloe + page 2's Squalane, merged in walk order.
+    expect(r.results.items.map((i) => i.slug)).toEqual(["aloe", "squalane"]);
+    expect(urls).toHaveLength(2);
+    expect(urls[1]).toContain("ppage=2");
+  });
+
+  it("walks both tabs' next links for allPages search", async () => {
+    const { c, urls } = makeClient();
+    const r = await c.search("synthetic", { allPages: true });
+    expect(r.products.items).toHaveLength(0);
+    // Page 1's Gamma + the followed ingredients-tab page's Beta.
+    expect(r.ingredients.items.map((i) => i.slug)).toEqual(["gamma", "beta"]);
+    expect(urls).toHaveLength(2);
+    expect(urls[1]).toContain("activetab=ingredients&ppage=2");
   });
 });

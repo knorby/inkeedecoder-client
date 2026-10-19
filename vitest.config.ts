@@ -7,7 +7,8 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/dist/**", "tests/live.test.ts"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html"],
+      // lcov feeds the Codecov upload in CI; text/html are for local runs.
+      reporter: ["text", "lcov", "json", "html"],
       include: ["src/**"],
       exclude: ["node_modules/**", "dist/**", "tests/**"],
     },

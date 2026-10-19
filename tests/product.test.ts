@@ -144,3 +144,88 @@ describe("parseProductPage — the ordinary retinol 1% in squalane", () => {
     expect(retinol?.description?.length).toBeGreaterThan(100);
   });
 });
+
+const SPARSE = `
+<div id="product-title">Sparse Product</div>
+<div class="prodinfobox"><time datetime="2024-01-01"></time><div>No uploader here</div></div>
+<div id="product-main-image"><picture><source type="image/webp" srcset="/img.webp 1x, /img2x.webp 2x, "><source type="image/jpeg"></picture></div>
+<div id="ingredlist-short">
+  <a class="ingred-link" href="/ingredients/alpha">Alpha</a>
+  <a class="ingred-link" href="/ingredients/alpha?x=1">Alpha dup</a>
+  <a class="ingred-link" href="">No slug</a>
+</div>
+<div id="ingredlist-highlights-section">
+  <span class="hashtag"></span>
+  <span class="hashtag" data-tooltip-content="missing-panel">#kept</span>
+  <div class="ingredlist-by-function-block">
+    <h3>Key ingredients</h3>
+    <div><span>no function link</span></div>
+  </div>
+</div>
+<div id="ingredlist-table-section"><table class="product-skim"><tbody>
+  <tr><td>no detail link</td></tr>
+</tbody></table></div>
+<div id="compare-controls"><button data-postlinkdata="not-json">x</button></div>
+<span class="tooltip_templates">
+  <span id="tt-hashtag-x">hashtag tooltip</span>
+  <span id="other-y">other</span>
+  <span id="tt-"></span>
+  <span id="tt-alpha"><a href="/ingredient-functions/emollient">Emollient</a>
+    <span class="colorcode-1" title="irritancy: 0 ; comedogenicity: 1"></span>
+    <div class="ingred-tooltip-text">Fast-absorbing.</div>
+  </span>
+</span>
+<div id="ingredlist-long-section"><div class="ingred-long"><p>orphan</p></div></div>
+`;
+
+describe("parseProductPage — sparse page", () => {
+  const p = parseProductPage(SPARSE, BASE_URL);
+
+  it("falls back to an empty slug without a compare postlinkurl", () => {
+    expect(p.slug).toBe("");
+    expect(p.path).toBe("/products/");
+    expect(p.url).toBe(`${BASE_URL}/products/`);
+  });
+
+  it("omits absent sections instead of emitting placeholders", () => {
+    expect(p.brand).toBeUndefined(); // no brand anchor
+    expect(p.description).toBeUndefined(); // no #product-details
+    expect(p.images).toBeUndefined(); // picture without an img src
+    expect(p.fullName).toBeUndefined(); // invalid data-postlinkdata JSON
+    expect(p.functions).toBeUndefined(); // no a.func-link in any block
+    expect(p.skimTable).toBeUndefined(); // rows without detail links
+    expect(p.longDescriptions).toBeUndefined(); // entries without header links
+  });
+
+  it("reads dates without an uploader line", () => {
+    expect(p.dates).toEqual({ uploadedAt: "2024-01-01" });
+  });
+
+  it("dedupes short-list ingredients by slug and drops slug-less ones", () => {
+    expect(p.ingredients).toHaveLength(1);
+    expect(p.ingredients?.[0]?.slug).toBe("alpha");
+  });
+
+  it("keeps only hashtags with text, labelling missing panels by tag", () => {
+    expect(p.hashtags).toEqual([{ tag: "#kept", label: "#kept" }]);
+  });
+
+  it("filters tooltip templates to tt-* ids, ignoring hashtag tooltips", () => {
+    expect(p.tooltips).toEqual([
+      {
+        slug: "alpha",
+        functions: [
+          {
+            name: "Emollient",
+            slug: "emollient",
+            path: "/ingredient-functions/emollient",
+            url: `${BASE_URL}/ingredient-functions/emollient`,
+          },
+        ],
+        irritancy: "0",
+        comedogenicity: "1",
+        blurb: "Fast-absorbing.",
+      },
+    ]);
+  });
+});

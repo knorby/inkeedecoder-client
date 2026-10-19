@@ -106,3 +106,23 @@ describe("parseIngredientFunctionPage — emollient", () => {
     expect(r.ingredients.items[0]?.path).toMatch(/^\/ingredients\//);
   });
 });
+
+describe("parseSearchPage — synthetic list", () => {
+  const r = parseSearchPage(
+    `<div class='detailpage'>
+      <div id='products'>
+        <a class='simpletextlistitem' href='/products/a'>Alpha</a>
+        <a class='simpletextlistitem' href='/products/a?x=1'>Alpha dup</a>
+        <a class='simpletextlistitem' href=''>No slug</a>
+      </div>
+      <div id='ingredients'></div>
+    </div>`,
+    BASE_URL,
+  );
+
+  it("dedupes by slug and drops slug-less anchors", () => {
+    expect(r.products.items).toHaveLength(1);
+    expect(r.products.items[0]?.slug).toBe("a");
+    expect(r.products.items[0]?.name).toBe("Alpha");
+  });
+});
