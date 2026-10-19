@@ -174,3 +174,41 @@ describe("parseHtml — iteration", () => {
     expect(count).toBeGreaterThan(2);
   });
 });
+
+describe("parseHtml — selection edges", () => {
+  const $ = parseHtml(DOC);
+
+  it("returns an empty selection for a falsy selector", () => {
+    expect($("").length).toBe(0);
+  });
+
+  it("returns undefined attr for selections without element nodes", () => {
+    // #json's only content is a text node.
+    expect($("#json").contents().attr("href")).toBeUndefined();
+  });
+
+  it("children() keeps only element nodes, even on non-element nodes", () => {
+    expect($("#json").children().length).toBe(0);
+    expect($("#json").contents().children().length).toBe(0);
+  });
+
+  it("contents() includes non-element nodes", () => {
+    expect($("#json").contents().length).toBe(1);
+  });
+
+  it("addBack(selector) filters the previous set element-by-element", () => {
+    // prev set (#wrap) filtered by the selector: only when it matches itself.
+    expect($("#wrap").children(".group").addBack("#wrap").length).toBe(2);
+    expect($("#wrap").children(".group").addBack("a").length).toBe(1);
+  });
+
+  it("addBack() without a selector keeps the whole previous set", () => {
+    expect($("#wrap").children(".group").addBack().length).toBe(2);
+  });
+
+  it("treats empty elements as childless", () => {
+    const $empty = parseHtml("<div></div>");
+    expect($empty("div").children().length).toBe(0);
+    expect($empty("div").contents().length).toBe(0);
+  });
+});
